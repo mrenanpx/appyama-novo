@@ -1,6 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { collection, getDocs, query, orderBy, doc, setDoc } from 'firebase/firestore';
 import { db } from './firebase';
+import logoImg from './assets/logos/logo.png';
+import adsSvg from './assets/logos/ads.svg';
+import crbSvg from './assets/logos/crb.svg';
+import prtSvg from './assets/logos/prt.svg';
+
+import { 
+  Home, 
+  Package, 
+  Clock, 
+  CalendarDays, 
+  Download, 
+  Upload, 
+  ShieldAlert, 
+  Settings, 
+  FileText, 
+  Printer 
+} from 'lucide-react';
 
 const regrasProdutos = {
   "BASTAO": { minL: 50, maxL: 200, minA: 50, maxA: 1000, minQtd: 1, minVal: 60, fator: 1.24, isAdesivo: false },
@@ -663,25 +680,25 @@ export default function App() {
 
       <aside className="w-64 flex-shrink-0 bg-[#0b0e14] border-r border-[#1e293b] flex flex-col h-full z-40">
         <div onClick={handleGoHome} className="p-6 flex items-center gap-3 cursor-pointer group border-b border-[#1e293b]">
-          <div className="bg-blue-600 text-white font-bold p-2.5 rounded-xl group-hover:bg-blue-500 transition-colors shadow-[0_0_15px_rgba(37,99,235,0.3)]">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+          <div className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center bg-blue-600/10 border border-blue-500/20 group-hover:scale-105 transition-transform">
+            <img src={logoImg} alt="Logo" className="w-full h-full object-cover" />
           </div>
           <div>
-            <h1 className="text-[17px] font-black text-white tracking-wide">Portal Gráfica</h1>
-            <p className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Painel de Gestão</p>
+            <h1 className="text-[17px] font-black text-white tracking-wide">YAMA PRINT</h1>
+            <p className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">TABELA DE PREÇO</p>
           </div>
         </div>
 
-        <nav className="flex-1 p-4 flex flex-col gap-2 overflow-y-auto">
-          <SidebarButton icon="🏠" id="HOME" label="Início" onClick={handleGoHome}/>
+         <nav className="flex-1 p-4 flex flex-col gap-2 overflow-y-auto">
+          <SidebarButton icon={<Home className="w-5 h-5" />} id="HOME" label="Início" onClick={handleGoHome}/>
           <div className="my-2 border-t border-[#1e293b]"></div>
-          <SidebarButton icon="📦" id="FORNECEDORES" label="Fornecedores"/>
-          <SidebarButton icon="⏱️" id="CONTROLE_HORAS" label="Controle de Horas"/>
-          <SidebarButton icon="📅" id="ESCALA_FOLGAS" label="Escala de Folgas"/>
-          <SidebarButton icon="📥" id="DOWNLOADS" label="Downloads"/>
-          <SidebarButton icon="📤" id="UPLOADS" label="Uploads"/>
+          <SidebarButton icon={<Package className="w-5 h-5" />} id="FORNECEDORES" label="Fornecedores"/>
+          <SidebarButton icon={<Clock className="w-5 h-5" />} id="CONTROLE_HORAS" label="Controle de Horas"/>
+          <SidebarButton icon={<CalendarDays className="w-5 h-5" />} id="ESCALA_FOLGAS" label="Escala de Folgas"/>
+          <SidebarButton icon={<Download className="w-5 h-5" />} id="DOWNLOADS" label="Downloads"/>
+          <SidebarButton icon={<Upload className="w-5 h-5" />} id="UPLOADS" label="Uploads"/>
           <div className="mt-auto border-t border-[#1e293b] pt-4">
-            <SidebarButton icon="⚙️" id="ADMIN" isLock={true} label="Administrador" onClick={handleAdminClick}/>
+            <SidebarButton icon={<ShieldAlert className="w-5 h-5" />} id="ADMIN" isLock={true} label="Administrador" onClick={handleAdminClick}/>
           </div>
         </nav>
       </aside>
@@ -740,15 +757,18 @@ export default function App() {
           ) : (
             <div key={currentViewKey} className="page-transition">
               
-              {activeTab === 'HOME' && (
+             {activeTab === 'HOME' && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {[
-                    { id: 'GRÁFICA', title: 'Gráfica', desc: 'Impressos em geral' },
-                    { id: 'CARIMBO', title: 'Carimbos', desc: 'Automáticos e Madeira' },
-                    { id: 'SERVIÇOS', title: 'Serviços', desc: 'Cópias e Encadernação' }
+                    { id: 'GRÁFICA', title: 'Gráfica', desc: 'Impressos em geral', icon: adsSvg },
+                    { id: 'CARIMBO', title: 'Carimbos', desc: 'Automáticos e Madeira', icon: crbSvg },
+                    { id: 'SERVIÇOS', title: 'Serviços', desc: 'Cópias e Encadernação', icon: prtSvg }
                   ].map(card => (
-                    <div key={card.id} onClick={() => { triggerAnimation(); setActiveTab(card.id); }} className="solid-card rounded-2xl cursor-pointer flex flex-col justify-center items-center text-center h-[240px]">
-                      <h3 className="text-[28px] font-black text-white mb-2 tracking-tight">{card.title}</h3>
+                    <div key={card.id} onClick={() => { triggerAnimation(); setActiveTab(card.id); }} className="solid-card rounded-2xl cursor-pointer flex flex-col justify-center items-center text-center h-[260px] p-6 group">
+                      <div className="w-14 h-14 mb-4 flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <img src={card.icon} alt={card.title} className="w-full h-full object-contain filter brightness-0 invert" />
+                      </div>
+                      <h3 className="text-[24px] font-black text-white mb-1 tracking-tight">{card.title}</h3>
                       <p className="text-sm text-slate-400 font-medium">{card.desc}</p>
                     </div>
                   ))}
