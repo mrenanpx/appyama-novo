@@ -16,7 +16,8 @@ import {
   ShieldAlert, 
   Settings, 
   FileText, 
-  Printer 
+  Printer ,
+  Cog
 } from 'lucide-react';
 
 const regrasProdutos = {
@@ -669,17 +670,19 @@ export default function App() {
   const isEspiral = activeTab === 'SERVIÇOS' && ['ESPIRAL'].includes(selectedSubCategory?.toUpperCase());
   const isPlastificacao = activeTab === 'SERVIÇOS' && ['PLASTIFICAÇÃO', 'POLASEAL', 'PLASTIFICAÇÃO E POLASEAL', 'PLASTIFICAÇÃO & POLASEAL'].includes(selectedSubCategory?.toUpperCase());
 
-  const SidebarButton = ({ id, label, icon, onClick, isLock }) => {
+ const SidebarButton = ({ id, label, icon, onClick, isLock }) => {
     const isActive = activeTab === id;
     return (
       <button
         onClick={onClick || (() => { triggerAnimation(); setActiveTab(id); setSelectedSubCategory(null); setSelectedProductType(null); setSearchTerm(''); setUploadStatus(''); })}
         className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
-          isActive ? 'bg-blue-600/10 text-blue-500 border border-blue-500/20 shadow-inner' : 'text-slate-400 hover:text-slate-200 hover:bg-[#121826] border border-transparent'
+          isActive 
+            ? 'bg-blue-600/20 text-white border border-blue-500/40 shadow-[0_0_15px_rgba(37,99,235,0.15)]' 
+            : 'text-slate-300 hover:text-white hover:bg-[#162032] border border-transparent'
         }`}
       >
-        <span className={`text-lg ${isActive ? 'text-blue-500' : 'text-slate-500'}`}>{icon}</span>
-        {label}
+        <span className={`text-lg ${isActive ? 'text-blue-400' : 'text-slate-400 group-hover:text-slate-200'}`}>{icon}</span>
+        <span className={isActive ? 'text-white font-bold' : ''}>{label}</span>
         {isLock && !isAdmin && <span className="ml-auto text-xs">🔒</span>}
         {isLock && isAdmin && <span className="ml-auto text-xs">🔓</span>}
       </button>
@@ -688,7 +691,10 @@ export default function App() {
 
   return (
     <div className="flex h-screen bg-[#0b0e14] text-slate-100 font-sans selection:bg-blue-600 selection:text-white overflow-hidden">
-      <style>{`
+      <style>
+        
+          
+        {`
         .page-transition { animation: slideFade 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
         @keyframes slideFade { 0% { opacity: 0; transform: translateY(15px) scale(0.99); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
         .solid-card { background-color: #121826; border: 1px solid #1e293b; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2); transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); }
@@ -716,27 +722,30 @@ export default function App() {
         </div>
       )}
 
-      <aside className="w-64 flex-shrink-0 bg-[#0b0e14] border-r border-[#1e293b] flex flex-col h-full z-40">
-        <div onClick={handleGoHome} className="p-6 flex items-center gap-3 cursor-pointer group border-b border-[#1e293b]">
-          <div className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center bg-blue-600/10 border border-blue-500/20 group-hover:scale-105 transition-transform">
+      <aside className="w-64 flex-shrink-0 bg-gradient-to-b from-[#101726] via-[#0d131f] to-[#090d16] border-r border-[#1e293b]/80 flex flex-col h-full z-40 shadow-2xl">
+        <div onClick={handleGoHome} className="p-6 flex items-center gap-3 cursor-pointer group border-b border-[#1e293b]/60">
+          <div className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center bg-blue-600/15 border border-blue-500/30 group-hover:scale-105 transition-transform">
             <img src={logoImg} alt="Logo" className="w-full h-full object-cover" />
           </div>
           <div>
             <h1 className="text-[17px] font-black text-white tracking-wide">YAMA PRINT</h1>
-            <p className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">TABELA DE PREÇO</p>
+            <p className="text-[10px] text-blue-400 uppercase tracking-wider font-semibold">TABELA DE PREÇO</p>
           </div>
         </div>
 
          <nav className="flex-1 p-4 flex flex-col gap-2 overflow-y-auto">
           <SidebarButton icon={<Home className="w-5 h-5" />} id="HOME" label="Início" onClick={handleGoHome}/>
-          <div className="my-2 border-t border-[#1e293b]"></div>
+          <div className="my-2 border-t border-[#1e293b]/60"></div>
           <SidebarButton icon={<Package className="w-5 h-5" />} id="FORNECEDORES" label="Fornecedores"/>
           <SidebarButton icon={<Clock className="w-5 h-5" />} id="CONTROLE_HORAS" label="Controle de Horas"/>
           <SidebarButton icon={<CalendarDays className="w-5 h-5" />} id="ESCALA_FOLGAS" label="Escala de Folgas"/>
           <SidebarButton icon={<Download className="w-5 h-5" />} id="DOWNLOADS" label="Downloads"/>
           <SidebarButton icon={<Upload className="w-5 h-5" />} id="UPLOADS" label="Uploads"/>
-          <div className="mt-auto border-t border-[#1e293b] pt-4">
+          
+          <div className="mt-auto pt-4 flex flex-col gap-3">
             <SidebarButton icon={<ShieldAlert className="w-5 h-5" />} id="ADMIN" isLock={true} label="Administrador" onClick={handleAdminClick}/>
+            
+                   
           </div>
         </nav>
       </aside>
@@ -795,23 +804,125 @@ export default function App() {
           ) : (
             <div key={currentViewKey} className="page-transition">
               
-             {activeTab === 'HOME' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {[
-                    { id: 'GRÁFICA', title: 'Gráfica', desc: 'Impressos em geral', icon: adsSvg },
-                    { id: 'CARIMBO', title: 'Carimbos', desc: 'Automáticos e Madeira', icon: crbSvg },
-                    { id: 'SERVIÇOS', title: 'Serviços', desc: 'Cópias e Encadernação', icon: prtSvg }
-                  ].map(card => (
-                    <div key={card.id} onClick={() => { triggerAnimation(); setActiveTab(card.id); }} className="solid-card rounded-2xl cursor-pointer flex flex-col justify-center items-center text-center h-[260px] p-6 group">
-                      <div className="w-14 h-14 mb-4 flex items-center justify-center group-hover:scale-110 transition-transform">
-                        <img src={card.icon} alt={card.title} className="w-full h-full object-contain filter brightness-0 invert" />
-                      </div>
-                      <h3 className="text-[24px] font-black text-white mb-1 tracking-tight">{card.title}</h3>
-                      <p className="text-sm text-slate-400 font-medium">{card.desc}</p>
-                    </div>
+           {activeTab === 'HOME' && (
+  <div className="flex flex-col gap-8">
+    {/* Barra de Busca Global da Tela Inicial */}
+    <div className="relative w-full max-w-xl mx-auto">
+      <svg className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+      <input
+        type="text"
+        placeholder="Busque subcategorias (ex: cartões, trodat, cópia) ou códigos de carimbos (ex: P10, T4910)..."
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        className="w-full h-14 bg-[#121826] border border-[#1e293b] rounded-2xl pl-12 pr-6 text-sm font-medium text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors shadow-xl"
+      />
+      {searchTerm && (
+        <button 
+          onClick={() => setSearchTerm('')} 
+          className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white text-xs font-bold bg-[#1b253b] px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
+        >
+          Limpar
+        </button>
+      )}
+    </div>
+
+    {/* Se houver busca ativa por um item de Carimbo específico */}
+    {searchTerm.trim() !== '' && products.some(item => item.category?.toUpperCase().includes('CARIMBO') && (item.id?.toLowerCase().includes(searchTerm.toLowerCase()) || item.name?.toLowerCase().includes(searchTerm.toLowerCase()) || item.measure?.toLowerCase().includes(searchTerm.toLowerCase()))) ? (
+      <div className="flex flex-col gap-4">
+        <div className="text-xs font-bold text-slate-400 uppercase tracking-wider px-2">Resultados na Lista de Carimbos:</div>
+        <div className="bg-[#121826] border border-[#1e293b] rounded-2xl overflow-hidden shadow-2xl">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-[#161e2e] border-b border-[#1e293b] text-slate-400 text-[11px] font-bold uppercase tracking-wider">
+                  <th className="px-6 py-5 w-24">ID</th>
+                  <th className="px-6 py-5">Variação</th>
+                  <th className="px-6 py-5">Medida</th>
+                  <th className="px-6 py-5 text-right">Borracha</th>
+                  <th className="px-6 py-5 text-right">Almofada</th>
+                  <th className="px-6 py-5 text-right">Completo</th>
+                </tr>
+              </thead>
+              <tbody className="text-sm">
+                {products
+                  .filter(item => item.category?.toUpperCase().includes('CARIMBO') && (item.id?.toLowerCase().includes(searchTerm.toLowerCase()) || item.name?.toLowerCase().includes(searchTerm.toLowerCase()) || item.measure?.toLowerCase().includes(searchTerm.toLowerCase())))
+                  .map((product) => (
+                    <tr key={product.id} className="hover:bg-[#1a2333] transition-colors border-b border-[#1e293b]/50 last:border-0">
+                      <td className="px-6 py-4 font-bold text-slate-500 text-xs">{product.id}</td>
+                      <td className="px-6 py-4 font-extrabold text-slate-200 uppercase">{product.name}</td>
+                      <td className="px-6 py-4 text-slate-400 font-medium text-[13px]">{product.measure || '-'}</td>
+                      <td className="px-6 py-4 text-right text-slate-400 font-medium text-[13px]">{product.borrachaPrice > 0 ? formatPrice(product.borrachaPrice) : '-'}</td>
+                      <td className="px-6 py-4 text-right text-slate-400 font-medium text-[13px]">{product.almofadaPrice > 0 ? formatPrice(product.almofadaPrice) : '-'}</td>
+                      <td className="px-6 py-4 text-right align-middle">
+                        <span className="text-emerald-400 font-black text-[17px] block bg-emerald-500/10 px-2 py-2 rounded-lg ml-auto w-[120px] text-center border border-emerald-500/40 tracking-wide">{formatPrice(product.price)}</span>
+                      </td>
+                    </tr>
                   ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    ) : searchTerm.trim() !== '' ? (
+      /* Se a busca for por subcategoria/texto geral dos cards */
+      <div className="flex flex-col gap-4">
+        <div className="text-xs font-bold text-slate-400 uppercase tracking-wider px-2">Subcategorias Encontradas:</div>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+          {products
+            .filter(item => item.subCategory?.toLowerCase().includes(searchTerm.toLowerCase()))
+            .map(item => item.subCategory)
+            .filter((sub, idx, arr) => arr.indexOf(sub) === idx) // Remove duplicadas
+            .map(subCat => {
+              // Descobre a categoria principal para direcionar certinho ao clicar
+              const matchProd = products.find(p => p.subCategory === subCat);
+              const parentCat = matchProd ? (matchProd.category?.toUpperCase().includes('CARIMBO') ? 'CARIMBO' : matchProd.category?.toUpperCase().includes('SERVIÇOS') ? 'SERVIÇOS' : 'GRÁFICA') : 'GRÁFICA';
+              
+              return (
+                <div 
+                  key={subCat} 
+                  onClick={() => { triggerAnimation(); setActiveTab(parentCat); setSelectedSubCategory(subCat); setSearchTerm(''); }} 
+                  className="solid-card rounded-2xl p-6 cursor-pointer flex items-center justify-center min-h-[110px]"
+                >
+                  <h3 className="text-center text-[14px] font-bold text-slate-200 uppercase tracking-wide">{subCat}</h3>
                 </div>
-              )}
+              );
+            })}
+        </div>
+      </div>
+    ) : (
+      /* Exibição normal dos 3 cards principais quando o input estiver vazio */
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 p-6">
+        {[
+          { id: 'GRÁFICA', title: 'Gráfica', desc: 'Impressos em geral', icon: adsSvg },
+          { id: 'CARIMBO', title: 'Carimbos', desc: 'Automáticos e Madeira', icon: crbSvg },
+          { id: 'SERVIÇOS', title: 'Serviços', desc: 'Cópias e Encadernação', icon: prtSvg }
+        ].map(card => (
+          <div 
+            key={card.id} 
+            onClick={() => { triggerAnimation(); setActiveTab(card.id); }} 
+            className="relative w-full h-[260px] cursor-pointer group rounded-2xl p-[2px] transition-all duration-500 hover:scale-[1.02]"
+          >
+            <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-emerald-400 to-blue-500 opacity-0 group-hover:opacity-75 blur-md transition-all duration-500 -z-10"></div>
+            <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-emerald-500 to-cyan-400 opacity-0 group-hover:opacity-75 transition-all duration-500 -z-10"></div>
+
+            <div className="w-full h-full bg-[#121826] group-hover:bg-[#0b0e14] border border-[#1e293b] rounded-2xl flex flex-col justify-center items-center text-center p-6 transition-colors duration-300 shadow-2xl relative z-10">
+              <div className="w-20 h-20 mb-4 flex items-center justify-center transition-transform duration-500 group-hover:scale-110">
+                <img 
+                  src={card.icon} 
+                  alt={card.title} 
+                  className="w-20 h-20 object-contain filter brightness-0 invert transition-all duration-500 group-hover:drop-shadow-[0_0_10px_rgba(52,211,153,0.6)]" 
+                />
+              </div>
+
+              <h3 className="text-[22px] font-black text-white mb-1 tracking-tight transition-transform duration-300 group-hover:translate-y-[-2px]">{card.title}</h3>
+              <p className="text-sm text-slate-400 font-medium">{card.desc}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    )}
+  </div>
+)}
 
               {['GRÁFICA', 'CARIMBO', 'SERVIÇOS'].includes(activeTab) && !selectedSubCategory && !isGlobalSearch && (
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
@@ -1311,7 +1422,22 @@ export default function App() {
             </div>
           )}
         </div>
-      </main>
+
+          <div className="mt-auto pt-8 pb-4 flex justify-center items-center w-full">
+            <a 
+              href="https://github.com/mrenanpx" 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="flex items-center gap-2 py-1.5 px-4 text-xs font-medium text-slate-500 hover:text-slate-300 active:bg-emerald-500/10 active:text-emerald-400 rounded-lg transition-all cursor-pointer group"
+            >
+              <svg className="w-4 h-4 fill-current opacity-60 group-hover:opacity-100 transition-opacity" viewBox="0 0 24 24">
+                <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+              </svg>
+              <span className="tracking-wide">mrenanpx</span>
+            </a>
+          </div>
+
+        </main>
     </div>
   );
 }
