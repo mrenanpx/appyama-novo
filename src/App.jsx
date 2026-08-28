@@ -334,6 +334,13 @@ export default function App() {
       snapSup.forEach((doc) => sups.push({ id: doc.id, ...doc.data() }));
       sups.sort((a, b) => (a.fornecedor || '').localeCompare(b.fornecedor || ''));
       setSuppliers(sups);
+
+      const docSnap = await getDoc(doc(db, "settings", "dados_planilhas"));
+      if (docSnap.exists()) {
+        const cacheData = docSnap.data();
+        if (cacheData.horas) setHoursData(cacheData.horas);
+        if (cacheData.folgas) setFolgasData(cacheData.folgas);
+      }
     } catch (error) {
       console.error("Erro ao buscar dados:", error);
     } finally {
@@ -341,26 +348,52 @@ export default function App() {
     }
   };
 
-  const fetchSheetData = async () => {
-    if(!SHEET_API_URL) return;
-    setLoadingHours(true);
+ const backgroundSyncSheet = async (isManual = false) => {
+    if (!SHEET_API_URL) return;
+    if (isManual) setLoadingHours(true);
     try {
       const res = await fetch(SHEET_API_URL);
       const data = await res.json();
       
       if (data && !data.erro) {
-        setHoursData(data.horas || []);
-        setFolgasData(data.folgas || []);
-      } else {
-        console.error("Erro retornado da planilha:", data);
-        setHoursData([]);
-        setFolgasData([]);
+        const novasHoras = data.horas || [];
+        const novasFolgas = data.folgas || [];
+
+        setHoursData(novasHoras);
+        setFolgasData(novasFolgas);
+
+        await setDoc(doc(db, "settings", "dados_planilhas"), {
+          horas: novasHoras,
+          folgas: novasFolgas,
+          ultimaAtualizacao: new Date().toISOString()
+        });
       }
     } catch (e) {
-      console.error("Erro ao puxar API do Google:", e);
+      console.error("Erro na sincronização em segundo plano:", e);
     } finally {
-      setLoadingHours(false);
+      if (isManual) setLoadingHours(false);
     }
+  };
+  
+  const fetchSheetData = async (forceRefresh = false) => {
+    if (!forceRefresh) {
+      try {
+        const docSnap = await getDoc(doc(db, "settings", "dados_planilhas"));
+        if (docSnap.exists()) {
+          const cacheData = docSnap.data();
+          if (cacheData.horas && cacheData.horas.length > 0) {
+            setHoursData(cacheData.horas);
+            setFolgasData(cacheData.folgas || []);
+            backgroundSyncSheet(false); // Roda em segundo plano sem mexer na tela
+            return;
+          }
+        }
+      } catch (e) {
+        console.error("Erro ao ler cache do Firebase:", e);
+      }
+    }
+
+    await backgroundSyncSheet(true); // Se for forçado pelo botão, mostra o carregando no botão
   };
 
   useEffect(() => {
@@ -1032,7 +1065,7 @@ export default function App() {
                      <h2 className="text-[15px] font-bold text-white flex items-center gap-2 tracking-wide uppercase">
                        <span className="text-xl">⏱️</span> Banco de Horas
                      </h2>
-                     <button onClick={fetchSheetData} disabled={loadingHours} className="bg-blue-600/10 text-blue-400 border border-blue-500/30 hover:bg-blue-600 hover:text-white transition-colors px-4 py-2 rounded-lg text-[13px] font-bold flex items-center gap-2 disabled:opacity-50">
+                     <button onClick={() => fetchSheetData(true)} disabled={loadingHours} className="bg-blue-600/10 text-blue-400 border border-blue-500/30 hover:bg-blue-600 hover:text-white transition-colors px-4 py-2 rounded-lg text-[13px] font-bold flex items-center gap-2 disabled:opacity-50">
                        <svg className={`w-4 h-4 ${loadingHours ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
                        {loadingHours ? 'Sincronizando...' : 'Atualizar Dados'}
                      </button>
@@ -1047,7 +1080,7 @@ export default function App() {
                         </tr>
                       </thead>
                       <tbody className="text-sm">
-                        {loadingHours && hoursData.length === 0 ? (
+                        {hoursData.length === 0 && loadingHours ? (
                            <tr><td colSpan="3" className="text-center py-12 text-slate-500 font-medium text-sm">Carregando dados em tempo real...</td></tr>
                         ) : hoursData.length === 0 ? (
                            <tr><td colSpan="3" className="text-center py-12 text-slate-500 font-medium text-sm">Nenhum dado encontrado ou API não configurada.</td></tr>
@@ -1076,7 +1109,7 @@ export default function App() {
                      <h2 className="text-[15px] font-bold text-white flex items-center gap-2 tracking-wide uppercase">
                        <span className="text-xl">📅</span> Escala de Folgas
                      </h2>
-                     <button onClick={fetchSheetData} disabled={loadingHours} className="bg-blue-600/10 text-blue-400 border border-blue-500/30 hover:bg-blue-600 hover:text-white transition-colors px-4 py-2 rounded-lg text-[13px] font-bold flex items-center gap-2 disabled:opacity-50">
+                     <button onClick={() => fetchSheetData(true)} disabled={loadingHours} className="bg-blue-600/10 text-blue-400 border border-blue-500/30 hover:bg-blue-600 hover:text-white transition-colors px-4 py-2 rounded-lg text-[13px] font-bold flex items-center gap-2 disabled:opacity-50">
                        <svg className={`w-4 h-4 ${loadingHours ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
                        {loadingHours ? 'Sincronizando...' : 'Atualizar Dados'}
                      </button>
