@@ -1080,10 +1080,10 @@ export default function App() {
                         </tr>
                       </thead>
                       <tbody className="text-sm">
-                        {hoursData.length === 0 && loadingHours ? (
-                           <tr><td colSpan="3" className="text-center py-12 text-slate-500 font-medium text-sm">Carregando dados em tempo real...</td></tr>
-                        ) : hoursData.length === 0 ? (
-                           <tr><td colSpan="3" className="text-center py-12 text-slate-500 font-medium text-sm">Nenhum dado encontrado ou API não configurada.</td></tr>
+                        {hoursData.length === 0 ? (
+                          <tr><td colSpan="3" className="text-center py-12 text-slate-500 font-medium text-sm">
+                            {loadingHours ? 'Sincronizando em segundo plano...' : 'Nenhum dado encontrado.'}
+                          </td></tr>
                         ) : (
                           hoursData.map((row, index) => (
                             <tr key={index} className="hover:bg-[#1a2333] transition-colors border-b border-[#1e293b]/50 last:border-0">
@@ -1130,30 +1130,36 @@ export default function App() {
                                  <th className="px-6 py-5">Suzano</th>
                               </tr>
                            </thead>
-                           <tbody className="text-sm">
-                              {futureFolgas.map((row, i) => {
-                                 const isNext = i === 0; 
-                                 return (
-                                   <tr key={i} className={`transition-colors border-b border-[#1e293b]/50 last:border-0 ${isNext ? 'bg-emerald-500/10' : 'hover:bg-[#1a2333]'}`}>
-                                      <td className={`px-6 py-4 font-bold text-xs uppercase ${isNext ? 'text-emerald-400' : 'text-slate-400'}`}>
-                                        {isNext ? (
-                                          <div className="flex items-center gap-2">
-                                            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                                            {row.mes}
-                                          </div>
-                                        ) : row.mes}
-                                      </td>
-                                      <td className="px-6 py-4 text-center">
-                                         <span className={`px-3 py-1.5 rounded-lg text-xs font-black tracking-wide border ${isNext ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-slate-700 text-slate-200 border-slate-600'}`}>
-                                           {row.data}
-                                         </span>
-                                      </td>
-                                      <td className={`px-6 py-4 font-bold uppercase ${isNext ? 'text-emerald-300' : 'text-slate-200'}`}>{row.mogi}</td>
-                                      <td className={`px-6 py-4 font-bold uppercase ${isNext ? 'text-emerald-300' : 'text-slate-200'}`}>{row.suzano}</td>
-                                   </tr>
-                                 );
-                              })}
-                           </tbody>
+                          <tbody className="text-sm">
+                          {futureFolgas.length === 0 ? (
+                            <tr><td colSpan="4" className="text-center py-12 text-slate-500 font-medium text-sm">
+                              {loadingHours ? 'Sincronizando em segundo plano...' : 'Nenhuma folga futura programada.'}
+                            </td></tr>
+                          ) : (
+                            futureFolgas.map((row, i) => {
+                                const isNext = i === 0; 
+                                return (
+                                  <tr key={i} className={`transition-colors border-b border-[#1e293b]/50 last:border-0 ${isNext ? 'bg-emerald-500/10' : 'hover:bg-[#1a2333]'}`}>
+                                    <td className={`px-6 py-4 font-bold text-xs uppercase ${isNext ? 'text-emerald-400' : 'text-slate-400'}`}>
+                                      {isNext ? (
+                                        <div className="flex items-center gap-2">
+                                          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                                          {row.mes}
+                                        </div>
+                                      ) : row.mes}
+                                    </td>
+                                    <td className="px-6 py-4 text-center">
+                                        <span className={`px-3 py-1.5 rounded-lg text-xs font-black tracking-wide border ${isNext ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-slate-700 text-slate-200 border-slate-600'}`}>
+                                          {row.data}
+                                        </span>
+                                    </td>
+                                    <td className={`px-6 py-4 font-bold uppercase ${isNext ? 'text-emerald-300' : 'text-slate-200'}`}>{row.mogi}</td>
+                                    <td className={`px-6 py-4 font-bold uppercase ${isNext ? 'text-emerald-300' : 'text-slate-200'}`}>{row.suzano}</td>
+                                  </tr>
+                                );
+                            })
+                          )}
+                        </tbody>
                         </table>
                      </div>
                   )}
