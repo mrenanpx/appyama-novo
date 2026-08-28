@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, getDocs, query, orderBy, doc, setDoc } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy, doc, setDoc, getDoc } from 'firebase/firestore';
 import { db } from './firebase';
 import logoImg from './assets/logos/logo.png';
 import adsSvg from './assets/logos/ads.svg';
@@ -376,6 +376,11 @@ export default function App() {
   };
   
   const fetchSheetData = async (forceRefresh = false) => {
+    if (!forceRefresh && (hoursData.length > 0 || folgasData.length > 0)) {
+      backgroundSyncSheet(false);
+      return;
+    }
+
     if (!forceRefresh) {
       try {
         const docSnap = await getDoc(doc(db, "settings", "dados_planilhas"));
@@ -1082,7 +1087,7 @@ export default function App() {
                       <tbody className="text-sm">
                         {hoursData.length === 0 ? (
                           <tr><td colSpan="3" className="text-center py-12 text-slate-500 font-medium text-sm">
-                            {loadingHours ? 'Carregando dados...' : 'Nenhum dado encontrado.'}
+                            Nenhum dado encontrado.
                           </td></tr>
                         ) : (
                           hoursData.map((row, index) => (
@@ -1128,7 +1133,7 @@ export default function App() {
                       <tbody className="text-sm">
                       {futureFolgas.length === 0 ? (
                         <tr><td colSpan="4" className="text-center py-12 text-slate-500 font-medium text-sm">
-                          {loadingHours ? 'Carregando dados...' : 'Nenhuma folga futura programada.'}
+                          Nenhuma folga futura programada.
                         </td></tr>
                       ) : (
                         futureFolgas.map((row, i) => {
