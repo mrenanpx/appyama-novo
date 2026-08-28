@@ -348,7 +348,7 @@ export default function App() {
     }
   };
 
- const backgroundSyncSheet = async (isManual = false) => {
+  const backgroundSyncSheet = async (isManual = false) => {
     if (!SHEET_API_URL) return;
     if (isManual) setLoadingHours(true);
     try {
@@ -384,7 +384,7 @@ export default function App() {
           if (cacheData.horas && cacheData.horas.length > 0) {
             setHoursData(cacheData.horas);
             setFolgasData(cacheData.folgas || []);
-            backgroundSyncSheet(false); // Roda em segundo plano sem mexer na tela
+            backgroundSyncSheet(false);
             return;
           }
         }
@@ -393,7 +393,7 @@ export default function App() {
       }
     }
 
-    await backgroundSyncSheet(true); // Se for forçado pelo botão, mostra o carregando no botão
+    await backgroundSyncSheet(true);
   };
 
   useEffect(() => {
@@ -401,8 +401,8 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (['CONTROLE_HORAS', 'ESCALA_FOLGAS'].includes(activeTab) && hoursData.length === 0 && folgasData.length === 0) {
-      fetchSheetData();
+    if (['CONTROLE_HORAS', 'ESCALA_FOLGAS'].includes(activeTab)) {
+      fetchSheetData(false);
     }
   }, [activeTab]);
 
@@ -1082,7 +1082,7 @@ export default function App() {
                       <tbody className="text-sm">
                         {hoursData.length === 0 ? (
                           <tr><td colSpan="3" className="text-center py-12 text-slate-500 font-medium text-sm">
-                            {loadingHours ? 'Sincronizando em segundo plano...' : 'Nenhum dado encontrado.'}
+                            {loadingHours ? 'Carregando dados...' : 'Nenhum dado encontrado.'}
                           </td></tr>
                         ) : (
                           hoursData.map((row, index) => (
@@ -1115,54 +1115,48 @@ export default function App() {
                      </button>
                   </div>
 
-                  {loadingHours && folgasData.length === 0 ? (
-                    <div className="bg-[#121826] border border-[#1e293b] p-6 rounded-2xl text-center text-slate-500 text-sm font-medium">Buscando folgas...</div>
-                  ) : futureFolgas.length === 0 ? (
-                    <div className="bg-[#121826] border border-[#1e293b] p-6 rounded-2xl text-center text-slate-500 text-sm font-medium">Nenhuma folga futura programada.</div>
-                  ) : (
-                     <div className="bg-[#121826] border border-[#1e293b] rounded-2xl overflow-hidden shadow-2xl animate-fade-in-up">
-                        <table className="w-full text-left border-collapse">
-                           <thead>
-                              <tr className="bg-[#161e2e] border-b border-[#1e293b] text-slate-400 text-[11px] font-bold uppercase tracking-wider">
-                                 <th className="px-6 py-5">Mês</th>
-                                 <th className="px-6 py-5 text-center">Data</th>
-                                 <th className="px-6 py-5">Mogi</th>
-                                 <th className="px-6 py-5">Suzano</th>
+                  <div className="bg-[#121826] border border-[#1e293b] rounded-2xl overflow-hidden shadow-2xl animate-fade-in-up">
+                    <table className="w-full text-left border-collapse">
+                       <thead>
+                          <tr className="bg-[#161e2e] border-b border-[#1e293b] text-slate-400 text-[11px] font-bold uppercase tracking-wider">
+                             <th className="px-6 py-5">Mês</th>
+                             <th className="px-6 py-5 text-center">Data</th>
+                             <th className="px-6 py-5">Mogi</th>
+                             <th className="px-6 py-5">Suzano</th>
+                          </tr>
+                       </thead>
+                      <tbody className="text-sm">
+                      {futureFolgas.length === 0 ? (
+                        <tr><td colSpan="4" className="text-center py-12 text-slate-500 font-medium text-sm">
+                          {loadingHours ? 'Carregando dados...' : 'Nenhuma folga futura programada.'}
+                        </td></tr>
+                      ) : (
+                        futureFolgas.map((row, i) => {
+                            const isNext = i === 0; 
+                            return (
+                              <tr key={i} className={`transition-colors border-b border-[#1e293b]/50 last:border-0 ${isNext ? 'bg-emerald-500/10' : 'hover:bg-[#1a2333]'}`}>
+                                <td className={`px-6 py-4 font-bold text-xs uppercase ${isNext ? 'text-emerald-400' : 'text-slate-400'}`}>
+                                  {isNext ? (
+                                    <div className="flex items-center gap-2">
+                                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                                      {row.mes}
+                                    </div>
+                                  ) : row.mes}
+                                </td>
+                                <td className="px-6 py-4 text-center">
+                                    <span className={`px-3 py-1.5 rounded-lg text-xs font-black tracking-wide border ${isNext ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-slate-700 text-slate-200 border-slate-600'}`}>
+                                      {row.data}
+                                    </span>
+                                </td>
+                                <td className={`px-6 py-4 font-bold uppercase ${isNext ? 'text-emerald-300' : 'text-slate-200'}`}>{row.mogi}</td>
+                                <td className={`px-6 py-4 font-bold uppercase ${isNext ? 'text-emerald-300' : 'text-slate-200'}`}>{row.suzano}</td>
                               </tr>
-                           </thead>
-                          <tbody className="text-sm">
-                          {futureFolgas.length === 0 ? (
-                            <tr><td colSpan="4" className="text-center py-12 text-slate-500 font-medium text-sm">
-                              {loadingHours ? 'Sincronizando em segundo plano...' : 'Nenhuma folga futura programada.'}
-                            </td></tr>
-                          ) : (
-                            futureFolgas.map((row, i) => {
-                                const isNext = i === 0; 
-                                return (
-                                  <tr key={i} className={`transition-colors border-b border-[#1e293b]/50 last:border-0 ${isNext ? 'bg-emerald-500/10' : 'hover:bg-[#1a2333]'}`}>
-                                    <td className={`px-6 py-4 font-bold text-xs uppercase ${isNext ? 'text-emerald-400' : 'text-slate-400'}`}>
-                                      {isNext ? (
-                                        <div className="flex items-center gap-2">
-                                          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                                          {row.mes}
-                                        </div>
-                                      ) : row.mes}
-                                    </td>
-                                    <td className="px-6 py-4 text-center">
-                                        <span className={`px-3 py-1.5 rounded-lg text-xs font-black tracking-wide border ${isNext ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-slate-700 text-slate-200 border-slate-600'}`}>
-                                          {row.data}
-                                        </span>
-                                    </td>
-                                    <td className={`px-6 py-4 font-bold uppercase ${isNext ? 'text-emerald-300' : 'text-slate-200'}`}>{row.mogi}</td>
-                                    <td className={`px-6 py-4 font-bold uppercase ${isNext ? 'text-emerald-300' : 'text-slate-200'}`}>{row.suzano}</td>
-                                  </tr>
-                                );
-                            })
-                          )}
-                        </tbody>
-                        </table>
-                     </div>
-                  )}
+                            );
+                        })
+                      )}
+                    </tbody>
+                    </table>
+                  </div>
                 </div>
               )}
 
