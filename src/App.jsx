@@ -289,8 +289,10 @@ export default function App() {
   const [selectedFile, setSelectedFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [uploadMsg, setUploadMsg] = useState('');
-
   
+  // Estado para armazenar o histórico de uploads por pasta/destino
+  const [uploadHistory, setUploadHistory] = useState({});
+
   useEffect(() => {
     localStorage.setItem('theme', theme);
     if (theme === 'dark') {
@@ -299,6 +301,22 @@ export default function App() {
       document.documentElement.classList.remove('dark');
     }
   }, [theme]);
+
+  // Carregar histórico de uploads do Firestore ao iniciar
+  useEffect(() => {
+    const fetchUploadHistory = async () => {
+      try {
+        const docRef = doc(db, "settings", "historico_uploads");
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          setUploadHistory(docSnap.data());
+        }
+      } catch (err) {
+        console.error("Erro ao carregar histórico de uploads:", err);
+      }
+    };
+    fetchUploadHistory();
+  }, []);
 
   const uploadTargets = {
     mogi: [
@@ -346,8 +364,35 @@ export default function App() {
         const result = await response.json();
         if (result.status === 'sucesso') {
           setUploadMsg('✅ Arquivo enviado com sucesso!');
+          
+          // Registrar histórico do upload atual (Data, Hora, Descrição/Nome)
+          const agora = new Date();
+          const dataFormatada = agora.toLocaleDateString('pt-BR');
+          const horaFormatada = agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+          
+          const novoRegistro = {
+            nome: selectedFile.name,
+            data: dataFormatada,
+            hora: horaFormatada,
+            timestamp: agora.getTime()
+          };
+
+          const folderKey = selectedTarget.folderId;
+          const historicoAtual = uploadHistory[folderKey] || [];
+          const novoHistoricoLista = [novoRegistro, ...historicoAtual].slice(0, 8); // Mantém apenas os últimos 8
+          
+          const novoHistoricoCompleto = {
+            ...uploadHistory,
+            [folderKey]: novoHistoricoLista
+          };
+
+          setUploadHistory(novoHistoricoCompleto);
+
+          // Salvar histórico no Firestore
+          await setDoc(doc(db, "settings", "historico_uploads"), novoHistoricoCompleto);
+
           setSelectedFile(null);
-          setTimeout(() => { setModalOpen(false); setUploadMsg(''); }, 2000);
+          setTimeout(() => { setUploadMsg(''); }, 3000);
         } else {
           setUploadMsg('❌ Erro ao enviar: ' + result.message);
         }
@@ -637,7 +682,6 @@ export default function App() {
 
   const normSearchGlobal = normalizeStr(searchTerm);
   
-  // Lógica global inteligente: filtra subcategorias em qualquer aba ou carimbos específicos ao digitar na busca global
   const globalMatchingSubCats = normSearchGlobal 
     ? products
         .filter(item => normalizeStr(item.subCategory).includes(normSearchGlobal) || normalizeStr(item.name).includes(normSearchGlobal))
@@ -990,6 +1034,60 @@ export default function App() {
   return (
     <div className="flex h-screen font-sans selection:bg-blue-600 selection:text-white overflow-hidden relative">
       
+      {/* Modal posicionado na raiz absoluta da tela para cobrir tudo perfeitamente e centralizar sem cortes */}
+      {modalOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4 overflow-y-auto">
+          <div className="bg-white dark:bg-[#121826] border border-slate-200 dark:border-[#1e293b] rounded-2xl p-8 max-w-md w-full shadow-2xl page-transition relative my-auto">
+            <button onClick={() => { setModalOpen(false); setSelectedFile(null); setUploadMsg(''); }} className="absolute top-6 right-6 text-slate-400 hover:text-slate-800 dark:hover:text-white cursor-pointer">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6 uppercase tracking-wide">Envio: {selectedTarget?.name}</h3>
+            
+            <label className="border-2 border-dashed border-slate-300 dark:border-[#27354f] hover:border-blue-500 dark:hover:border-blue-500 rounded-xl p-8 flex flex-col items-center justify-center cursor-pointer bg-slate-50 dark:bg-[#0b0e14] transition-colors mb-4 group">
+              <svg className="w-10 h-10 text-slate-400 dark:text-slate-500 group-hover:text-blue-500 dark:group-hover:text-blue-400 mb-3 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13l-3-3m0 0l-3 3m3-3v8m0-13a9 9 0 11-0 18 9 9 0 010-18z"></path></svg>
+              <span className="text-sm font-semibold text-slate-600 dark:text-slate-300 text-center">Clique para selecionar ou arraste o arquivo</span>
+              <input type="file" onChange={handleFileChange} className="hidden" />
+            </label>
+
+            <div className="text-center text-xs text-blue-600 dark:text-blue-400 font-semibold mb-6 truncate">
+              {selectedFile ? `Selecionado: ${selectedFile.name}` : 'Nenhum arquivo selecionado'}
+            </div>
+
+            <button 
+              onClick={handleSendFile} 
+              disabled={!selectedFile || uploading}
+              className="w-full py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm tracking-wide transition-colors cursor-pointer shadow-lg shadow-emerald-600/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {uploading && <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>}
+              {uploading ? 'Enviando...' : 'Enviar'}
+            </button>
+
+            {uploadMsg && <p className="text-center text-xs font-semibold mt-4 text-slate-600 dark:text-slate-300">{uploadMsg}</p>}
+
+            {/* Seção com o Histórico dos Últimos 8 Uploads */}
+            {selectedTarget && uploadHistory[selectedTarget.folderId] && uploadHistory[selectedTarget.folderId].length > 0 && (
+              <div className="mt-6 pt-5 border-t border-slate-200 dark:border-[#1e293b]">
+                <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">Últimos Arquivos Enviados:</div>
+                <div className="flex flex-col gap-2 max-h-36 overflow-y-auto pr-1">
+                  {uploadHistory[selectedTarget.folderId].map((hist, idx) => (
+                    <div key={idx} className="bg-slate-50 dark:bg-[#0b0e14] border border-slate-200 dark:border-[#1e293b] rounded-lg px-3 py-2 flex items-center justify-between gap-2 text-xs">
+                      <span className="font-semibold text-slate-700 dark:text-slate-300 truncate max-w-[200px]" title={hist.nome}>
+                        📄 {hist.nome}
+                      </span>
+                      <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium whitespace-nowrap">
+                        {hist.data} às {hist.hora}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+          </div>
+        </div>
+      )}
+
       <button 
         onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
         className="md:hidden fixed bottom-6 right-6 z-50 bg-blue-600 text-white p-4 rounded-full shadow-2xl flex items-center justify-center cursor-pointer hover:bg-blue-500 transition-all"
@@ -1793,39 +1891,6 @@ export default function App() {
               {activeTab === 'UPLOADS' && (
                 <div className="flex flex-col gap-6 max-w-2xl mx-auto w-full">
                   
-                  {modalOpen && (
-                    <div className="fixed inset-0 bg-slate-900/50 dark:bg-[#0b0e14]/80 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
-                      <div className="bg-white dark:bg-[#121826] border border-slate-200 dark:border-[#1e293b] rounded-2xl p-8 max-w-md w-full shadow-2xl page-transition relative">
-                        <button onClick={() => { setModalOpen(false); setSelectedFile(null); setUploadMsg(''); }} className="absolute top-6 right-6 text-slate-400 hover:text-slate-800 dark:hover:text-white cursor-pointer">
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                        </button>
-
-                        <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6 uppercase tracking-wide">Envio: {selectedTarget?.name}</h3>
-                        
-                        <label className="border-2 border-dashed border-slate-300 dark:border-[#27354f] hover:border-blue-500 dark:hover:border-blue-500 rounded-xl p-8 flex flex-col items-center justify-center cursor-pointer bg-slate-50 dark:bg-[#0b0e14] transition-colors mb-4 group">
-                          <svg className="w-10 h-10 text-slate-400 dark:text-slate-500 group-hover:text-blue-500 dark:group-hover:text-blue-400 mb-3 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13l-3-3m0 0l-3 3m3-3v8m0-13a9 9 0 11-0 18 9 9 0 010-18z"></path></svg>
-                          <span className="text-sm font-semibold text-slate-600 dark:text-slate-300 text-center">Clique para selecionar ou arraste o arquivo</span>
-                          <input type="file" onChange={handleFileChange} className="hidden" />
-                        </label>
-
-                        <div className="text-center text-xs text-blue-600 dark:text-blue-400 font-semibold mb-6 truncate">
-                          {selectedFile ? `Selecionado: ${selectedFile.name}` : 'Nenhum arquivo selecionado'}
-                        </div>
-
-                        <button 
-                          onClick={handleSendFile} 
-                          disabled={!selectedFile || uploading}
-                          className="w-full py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm tracking-wide transition-colors cursor-pointer shadow-lg shadow-emerald-600/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                        >
-                          {uploading && <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>}
-                          {uploading ? 'Enviando...' : 'Enviar'}
-                        </button>
-
-                        {uploadMsg && <p className="text-center text-xs font-semibold mt-4 text-slate-600 dark:text-slate-300">{uploadMsg}</p>}
-                      </div>
-                    </div>
-                  )}
-
                   <div className="bg-white dark:bg-[#121826] border border-slate-200 dark:border-[#1e293b] p-6 rounded-2xl shadow-xl flex flex-col gap-6">
                     <h2 className="text-lg font-bold text-slate-900 dark:text-white uppercase tracking-wide flex items-center gap-2">
                       Central de Uploads
