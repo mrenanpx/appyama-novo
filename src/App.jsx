@@ -379,7 +379,7 @@ export default function App() {
 
           const folderKey = selectedTarget.folderId;
           const historicoAtual = uploadHistory[folderKey] || [];
-          const novoHistoricoLista = [novoRegistro, ...historicoAtual].slice(0, 4); // Mantém apenas os últimos 8
+          const novoHistoricoLista = [novoRegistro, ...historicoAtual].slice(0, 3); // Mantém apenas os últimos 8
           
           const novoHistoricoCompleto = {
             ...uploadHistory,
