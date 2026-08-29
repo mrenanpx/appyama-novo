@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { collection, getDocs, query, orderBy, doc, setDoc, getDoc } from 'firebase/firestore';
 import { db } from './firebase';
-import logoImg from './assets/logos/logo.png';
 import adsSvg from './assets/logos/ads.svg';
 import crbSvg from './assets/logos/crb.svg';
 import prtSvg from './assets/logos/prt.svg';
@@ -40,7 +39,9 @@ import {
   RefreshCw, 
   PenTool, 
   FileArchive,
-  Copyright
+  Copyright,
+  Menu,
+  X
 } from 'lucide-react';
 
 const regrasProdutos = {
@@ -280,6 +281,7 @@ export default function App() {
   const [folgasData, setFolgasData] = useState([]);
   const [loadingHours, setLoadingHours] = useState(false);
   const [isExtrasOpen, setIsExtrasOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const [activeStore, setActiveStore] = useState('mogi');
   const [modalOpen, setModalOpen] = useState(false);
@@ -555,7 +557,7 @@ export default function App() {
     const normSearch = normalizeStr(searchTerm);
     return products.filter(item => {
       const matchesCategory = item.category?.toUpperCase().includes(activeTab);
-      const isGlobalSearch = ['CARIMBO', 'SERVIÇOS'].includes(activeTab) && !selectedSubCategory && normSearch !== '';
+      const isGlobalSearch = ['CARIMBO', 'SERVIÇOS'].includes(activeTab) && !selectedSubCategory;
       let matchesSubCat = true;
       let matchesType = true;
 
@@ -577,7 +579,6 @@ export default function App() {
     });
   };
 
-  // Engloba Panfleto, Santinho e Crachá
   const isPanfletoOrSimilarSubCategory = () => {
     const sub = normalizeStr(selectedSubCategory);
     return sub.includes("PANFLETO") || sub.includes("SANTINHO") || sub.includes("CRACHA") || sub.includes("CRACHÁ");
@@ -635,9 +636,10 @@ export default function App() {
 
   const normSearchGlobal = normalizeStr(searchTerm);
   
+  // Lógica global inteligente: filtra subcategorias em qualquer aba ou carimbos específicos ao digitar na busca global
   const globalMatchingSubCats = normSearchGlobal 
     ? products
-        .filter(item => normalizeStr(item.subCategory).includes(normSearchGlobal))
+        .filter(item => normalizeStr(item.subCategory).includes(normSearchGlobal) || normalizeStr(item.name).includes(normSearchGlobal))
         .map(item => item.subCategory)
         .filter((sub, idx, arr) => sub && arr.indexOf(sub) === idx)
     : [];
@@ -662,6 +664,7 @@ export default function App() {
     setSearchTerm('');
     setUploadStatus('');
     setIsExtrasOpen(false);
+    setMobileMenuOpen(false);
   };
 
   const handleAdminClick = () => {
@@ -672,10 +675,12 @@ export default function App() {
       setSelectedProductType(null);
       setSearchTerm('');
       setIsExtrasOpen(false);
+      setMobileMenuOpen(false);
     } else {
       setShowAdminModal(true);
       setPasswordError('');
       setAdminPassword('');
+      setMobileMenuOpen(false);
     }
   };
 
@@ -932,7 +937,7 @@ export default function App() {
     );
   };
 
-  const currentViewKey = `${activeTab}-${selectedSubCategory || 'none'}-${selectedProductType || 'none'}`;
+  const currentViewKey = `${activeTab}-${selectedSubCategory || 'none'}-${selectedProductType || 'none'}-${searchTerm}`;
   
   const isGlobalSearch = ['CARIMBO', 'SERVIÇOS'].includes(activeTab) && !selectedSubCategory && normSearchGlobal !== '';
   const isMadeira = activeTab === 'CARIMBO' && selectedSubCategory?.toUpperCase().includes('MADEIRA') && !isGlobalSearch;
@@ -947,7 +952,16 @@ export default function App() {
     const isActive = activeTab === id;
     return (
       <button
-        onClick={onClick || (() => { triggerAnimation(); setActiveTab(id); setSelectedSubCategory(null); setSelectedProductType(null); setSearchTerm(''); setUploadStatus(''); setIsExtrasOpen(false); })}
+        onClick={onClick || (() => { 
+          triggerAnimation(); 
+          setActiveTab(id); 
+          setSelectedSubCategory(null); 
+          setSelectedProductType(null); 
+          setSearchTerm(''); 
+          setUploadStatus(''); 
+          setIsExtrasOpen(false);
+          setMobileMenuOpen(false);
+        })}
         className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
           isActive 
             ? 'bg-blue-100 dark:bg-blue-600/20 text-blue-700 dark:text-white border border-blue-200 dark:border-blue-500/40 shadow-[0_0_15px_rgba(37,99,235,0.15)]' 
@@ -973,7 +987,23 @@ export default function App() {
   };
 
   return (
-    <div className="flex h-screen font-sans selection:bg-blue-600 selection:text-white overflow-hidden">
+    <div className="flex h-screen font-sans selection:bg-blue-600 selection:text-white overflow-hidden relative">
+      
+      <button 
+        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+        className="md:hidden fixed bottom-6 right-6 z-50 bg-blue-600 text-white p-4 rounded-full shadow-2xl flex items-center justify-center cursor-pointer hover:bg-blue-500 transition-all"
+        title="Menu"
+      >
+        {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+      </button>
+
+      {mobileMenuOpen && (
+        <div 
+          onClick={() => setMobileMenuOpen(false)} 
+          className="md:hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-30 transition-opacity"
+        ></div>
+      )}
+
       <div className="flex w-full h-full bg-slate-200 text-slate-800 dark:bg-[#0b0e14] dark:text-slate-100 transition-colors duration-300">
       <style>{`
         .page-transition { animation: slideFade 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
@@ -1003,12 +1033,19 @@ export default function App() {
         </div>
       )}
 
-      <aside className="w-64 flex-shrink-0 bg-gradient-to-b from-white via-slate-50 to-slate-100 dark:from-[#101726] dark:via-[#0d131f] dark:to-[#090d16] border-r border-slate-200 dark:border-[#1e293b]/80 flex flex-col h-full z-40 shadow-2xl transition-colors duration-300">
+      <aside className={`fixed md:static inset-y-0 left-0 w-64 flex-shrink-0 bg-gradient-to-b from-white via-slate-50 to-slate-100 dark:from-[#101726] dark:via-[#0d131f] dark:to-[#090d16] border-r border-slate-200 dark:border-[#1e293b]/80 flex flex-col h-full z-40 shadow-2xl transition-transform duration-300 ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
+        
+        {/* Topo da Sidebar com o novo cabec.svg em SVG puro/tag img e cor alinhada ao subtítulo */}
         <div onClick={handleGoHome} className="p-6 flex items-center gap-3 cursor-pointer group border-b border-slate-200 dark:border-[#1e293b]/60">
-          <div className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center bg-blue-100 dark:bg-blue-600/15 border border-blue-200 dark:border-blue-500/30 group-hover:scale-105 transition-transform">
-            <img src={logoImg} alt="Logo" className="w-full h-full object-cover" />
+          <div className="w-10 h-10 flex items-center justify-center flex-shrink-0 text-blue-600 dark:text-blue-400">
+            <img 
+              src="public/cabec.svg" 
+              alt="Logo" 
+              className="w-full h-full object-contain" 
+              style={{ filter: 'invert(37%) sepia(87%) saturate(1832%) hue-rotate(202deg) brightness(97%) contrast(101%)' }}
+            />
           </div>
-          <div>
+          <div className="flex flex-col">
             <h1 className="text-[17px] font-black text-slate-900 dark:text-white tracking-wide">YAMA PRINT</h1>
             <p className="text-[10px] text-blue-600 dark:text-blue-400 uppercase tracking-wider font-semibold">TABELA DE PREÇO</p>
           </div>
@@ -1016,8 +1053,39 @@ export default function App() {
 
          <nav className="flex-1 p-4 flex flex-col justify-between overflow-y-auto">
           <div className="flex flex-col gap-2">
+            
+            {/* Barra de Busca Global Discreta na Sidebar */}
+            <div className="relative w-full mb-3">
+              <svg className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+              <input
+                type="text"
+                placeholder="Busca global..."
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  if (e.target.value.trim() !== '') {
+                    setActiveTab('HOME');
+                    setSelectedSubCategory(null);
+                    setSelectedProductType(null);
+                  }
+                }}
+                className="w-full h-10 bg-slate-100 dark:bg-[#131b2c] text-slate-900 dark:text-slate-200 border border-slate-200 dark:border-[#1e2a40] rounded-xl pl-9 pr-7 text-[12.5px] font-medium placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-blue-500 dark:focus:border-blue-500 transition-colors shadow-inner"
+              />
+              {searchTerm && (
+                <button 
+                  onClick={() => setSearchTerm('')} 
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xs font-bold transition-colors cursor-pointer"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+
             <SidebarButton icon={<Home className="w-5 h-5" />} id="HOME" label="Início" onClick={handleGoHome}/>
-            <div className="my-2 border-t border-slate-200 dark:border-[#1e293b]/60"></div>
+            
+            {/* Linha divisória isolando o Início do restante das opções */}
+            <div className="my-3 border-t border-slate-200 dark:border-[#1e293b]"></div>
+
             <SidebarButton icon={<Package className="w-5 h-5" />} id="FORNECEDORES" label="Fornecedores"/>
             <SidebarButton icon={<Clock className="w-5 h-5" />} id="CONTROLE_HORAS" label="Controle de Horas"/>
             <SidebarButton icon={<CalendarDays className="w-5 h-5" />} id="ESCALA_FOLGAS" label="Escala de Folgas"/>
@@ -1026,18 +1094,35 @@ export default function App() {
           </div>
           
           <div className="pt-4 flex flex-col gap-3">
+            <button
+              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              className="w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-200 dark:text-slate-300 dark:hover:text-white dark:hover:bg-[#162032] transition-all cursor-pointer border border-transparent"
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-lg text-slate-500 dark:text-slate-400">
+                  {theme === 'dark' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
+                </span>
+                <span>Modo Escuro</span>
+              </div>
+              <div className={`w-10 h-6 flex items-center rounded-full p-1 transition-colors duration-300 ${theme === 'dark' ? 'bg-blue-600' : 'bg-slate-300 dark:bg-slate-700'}`}>
+                <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-300 ${theme === 'dark' ? 'translate-x-4' : 'translate-x-0'}`}></div>
+              </div>
+            </button>
+
             <SidebarButton icon={<Cog className="w-5 h-5" />} id="ADMIN" isLock={true} label="Administrador" onClick={handleAdminClick}/>
           </div>
         </nav>
       </aside>
 
-      <main className="flex-1 flex flex-col min-h-screen relative scroll-smooth overflow-y-auto">
-        <div className="max-w-[1200px] mx-auto w-full p-6 flex flex-col flex-1 justify-between gap-8">
+      <main className="flex-1 flex flex-col min-h-screen relative scroll-smooth overflow-y-auto w-full">
+        <div className="max-w-[1200px] mx-auto w-full p-4 md:p-6 flex flex-col flex-1 justify-between gap-8">
           
           <div className="flex flex-col gap-6">
-            <div className="flex flex-col md:flex-row gap-4 sticky top-0 z-30">
+            
+            {/* Cabeçalho Sticky apenas com o Breadcrumb limpo */}
+            <div className="sticky top-0 z-30 flex flex-col gap-2 bg-slate-200 dark:bg-[#0b0e14] py-2 transition-all">
               
-              <div className="flex items-center flex-wrap gap-2 text-[13px] font-semibold bg-white dark:bg-[#121826] border border-slate-200 dark:border-[#1e293b] px-5 py-3.5 rounded-xl flex-1 shadow-sm h-[52px] transition-colors">
+              <div className="flex items-center flex-wrap gap-2 text-[13px] font-semibold bg-white dark:bg-[#121826] border border-slate-200 dark:border-[#1e293b] px-4 md:px-5 py-3.5 rounded-xl w-full shadow-sm transition-colors">
                 <button onClick={handleGoHome} className="text-blue-600 dark:text-blue-500 hover:text-blue-700 dark:hover:text-blue-400 transition-colors flex items-center gap-2 cursor-pointer">INÍCIO</button>
                 
                 {activeTab !== 'HOME' && (
@@ -1077,26 +1162,21 @@ export default function App() {
                 )}
               </div>
 
-              <button
-                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                className="flex-shrink-0 h-[52px] w-[52px] flex items-center justify-center bg-white dark:bg-[#121826] border border-slate-200 dark:border-[#1e293b] rounded-xl text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400 hover:bg-slate-50 dark:hover:bg-[#162032] transition-all shadow-sm cursor-pointer"
-                title="Alternar Tema"
-              >
-                {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-              </button>
-
-              {['GRÁFICA', 'CARIMBO', 'SERVIÇOS', 'FORNECEDORES'].includes(activeTab) && (
-                <div className="relative w-full md:w-80 flex-shrink-0 h-[52px]">
-                  <svg className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                  <input
-                    type="text"
-                    placeholder={activeTab === 'FORNECEDORES' ? "Buscar fornecedor ou vendedor..." : "Filtrar resultados..."}
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full h-full bg-white dark:bg-[#121826] border border-slate-300 dark:border-[#1e293b] rounded-xl pl-11 pr-4 text-[13px] font-medium text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors shadow-sm"
-                  />
+              {activeTab === 'FORNECEDORES' && (
+                <div className="flex items-center gap-3 w-full">
+                  <div className="relative flex-1 h-[46px]">
+                    <svg className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    <input
+                      type="text"
+                      placeholder="Buscar fornecedor..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full h-full bg-white dark:bg-[#121826] border border-slate-300 dark:border-[#1e293b] rounded-xl pl-11 pr-4 text-[13px] font-medium text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors shadow-sm"
+                    />
+                  </div>
                 </div>
               )}
+
             </div>
 
             {loading ? (
@@ -1108,25 +1188,6 @@ export default function App() {
                 
                {activeTab === 'HOME' && (
                   <div className="flex flex-col gap-8">
-                    <div className="relative w-full max-w-xl mx-auto">
-                      <svg className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                      <input
-                        type="text"
-                        placeholder="Busca global (ex: cartao, banner, adesivo, trodat, cópia, P10, 15x15, 40x60...)"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full h-14 bg-white dark:bg-[#121826] border border-slate-300 dark:border-[#1e293b] rounded-2xl pl-12 pr-6 text-sm font-medium text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors shadow-xl"
-                      />
-                      {searchTerm && (
-                        <button 
-                          onClick={() => setSearchTerm('')} 
-                          className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-800 dark:hover:text-white text-xs font-bold bg-slate-100 dark:bg-[#1b253b] px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
-                        >
-                          Limpar
-                        </button>
-                      )}
-                    </div>
-
                     {normSearchGlobal !== '' ? (
                       globalMatchingSubCats.length === 0 && globalMatchingStamps.length === 0 ? (
                         <div className="flex flex-col gap-4">
@@ -1244,7 +1305,7 @@ export default function App() {
                   </div>
                 )}
 
-              {['GRÁFICA', 'CARIMBO', 'SERVIÇOS'].includes(activeTab) && !selectedSubCategory && !isGlobalSearch && (
+              {['GRÁFICA', 'CARIMBO', 'SERVIÇOS'].includes(activeTab) && !selectedSubCategory && normSearchGlobal === '' && (
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
                   {displaySubCats.length > 0 ? displaySubCats.map(subCat => (
                     <div 
@@ -1276,7 +1337,7 @@ export default function App() {
                 </div>
               )}
 
-              {activeTab === 'GRÁFICA' && selectedSubCategory && (!selectedProductType) && (
+              {activeTab === 'GRÁFICA' && selectedSubCategory && normSearchGlobal === '' && (!selectedProductType) && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
                   {displayTypes.length > 0 ? displayTypes.map(type => (
                     <div 
@@ -1296,7 +1357,7 @@ export default function App() {
                 </div>
               )}
 
-              {((activeTab === 'GRÁFICA' && selectedSubCategory && selectedProductType) || (['CARIMBO', 'SERVIÇOS'].includes(activeTab) && (selectedSubCategory || isGlobalSearch))) && (
+              {((activeTab === 'GRÁFICA' && selectedSubCategory && selectedProductType) || (['CARIMBO', 'SERVIÇOS'].includes(activeTab) && selectedSubCategory)) && (
                 <div className="flex flex-col gap-6">
                   
                   {renderAcabamentosExtras()}
@@ -1315,8 +1376,8 @@ export default function App() {
                                   <th className="px-6 py-5 min-w-[200px]">Variação</th>
                                   <th className="px-6 py-5 min-w-[220px]">Especificações</th>
                                   <th className="px-6 py-5 text-center">Prazo</th>
-                                  <th className="px-6 py-5 text-right">FRENTE</th>
-                                  <th className="px-6 py-5 text-right">FRENTE / VERSO</th>
+                                  <th className="px-6 py-5 text-right">R$ FRENTE</th>
+                                  <th className="px-6 py-5 text-right">R$ FRENTE / VERSO</th>
                                 </>
                               ) : (
                                 <>
@@ -1583,7 +1644,7 @@ export default function App() {
                      </div>
                   </div>
                   <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
+                    <table className="w-full text-left border-collapse min-w-[500px]">
                       <thead>
                         <tr className="bg-slate-50 dark:bg-[#162032]/80 border-b border-slate-200 dark:border-[#1e293b] text-slate-600 dark:text-slate-300 text-[11px] font-bold uppercase tracking-wider">
                           <th className="px-6 py-5">Loja</th>
@@ -1634,46 +1695,50 @@ export default function App() {
                   </div>
 
                   <div className="bg-white dark:bg-gradient-to-b dark:from-[#101726] dark:via-[#0d131f] dark:to-[#090d16] border border-slate-200 dark:border-[#1e293b]/80 rounded-2xl overflow-hidden shadow-2xl animate-fade-in-up">
-                    <table className="w-full text-left border-collapse">
-                       <thead>
-                          <tr className="bg-slate-100 dark:bg-[#162032]/80 border-b border-slate-200 dark:border-[#1e293b] text-slate-600 dark:text-slate-300 text-[11px] font-bold uppercase tracking-wider">
-                             <th className="px-6 py-5">Mês</th>
-                             <th className="px-6 py-5 text-center">Data</th>
-                             <th className="px-6 py-5">Mogi</th>
-                             <th className="px-6 py-5">Suzano</th>
-                          </tr>
-                       </thead>
-                      <tbody className="text-sm">
-                      {futureFolgas.length === 0 ? (
-                        <tr><td colSpan="4" className="text-center py-12 text-slate-500 font-medium text-sm">
-                          Nenhuma folga futura programada.
-                        </td></tr>
-                      ) : (
-                        futureFolgas.map((row, i) => {
-                            const isNext = i === 0; 
-                            return (
-                              <tr key={i} className={`transition-colors border-b border-slate-200 dark:border-[#1e293b]/50 last:border-0 ${isNext ? 'bg-emerald-50 dark:bg-emerald-500/10' : 'hover:bg-slate-50 dark:hover:bg-[#1a2333]'}`}>
-                                <td className={`px-6 py-4 font-bold text-xs uppercase ${isNext ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-500 dark:text-slate-400'}`}>
-                                  {isNext ? (
-                                    <div className="flex items-center gap-2">
-                                      <span className="w-2 h-2 rounded-full bg-emerald-500 dark:bg-emerald-400 animate-pulse"></span>
-                                      {row.mes}
-                                    </div>
-                                  ) : row.mes}
-                                </td>
-                                <td className="px-6 py-4 text-center">
-                                    <span className={`px-3 py-1.5 rounded-lg text-xs font-black tracking-wide border ${isNext ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/30' : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-600'}`}>
-                                      {row.data}
-                                    </span>
-                                </td>
-                                <td className={`px-6 py-4 font-bold uppercase ${isNext ? 'text-emerald-600 dark:text-emerald-300' : 'text-slate-800 dark:text-slate-200'}`}>{row.mogi}</td>
-                                <td className={`px-6 py-4 font-bold uppercase ${isNext ? 'text-emerald-600 dark:text-emerald-300' : 'text-slate-800 dark:text-slate-200'}`}>{row.suzano}</td>
-                              </tr>
-                            );
-                        })
-                      )}
-                    </tbody>
-                    </table>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left border-collapse min-w-[500px]">
+                         <thead>
+                            <tr className="bg-slate-100 dark:bg-[#162032]/80 border-b border-slate-200 dark:border-[#1e293b] text-slate-600 dark:text-slate-300 text-[11px] font-bold uppercase tracking-wider">
+                               <th className="px-6 py-5">Mês</th>
+                               <th className="px-6 py-5 text-center">Data</th>
+                               <th className="px-6 py-5">Mogi</th>
+                               <th className="px-6 py-5">Suzano</th>
+                            </tr>
+                         </thead>
+                        <tbody className="text-sm">
+                          {futureFolgas.length === 0 ? (
+                            <tr>
+                              <td colSpan="4" className="text-center py-12 text-slate-500 font-medium text-sm">
+                                Nenhuma folga futura programada.
+                              </td>
+                            </tr>
+                          ) : (
+                            futureFolgas.map((row, i) => {
+                              const isNext = i === 0; 
+                              return (
+                                <tr key={i} className={`transition-colors border-b border-slate-200 dark:border-[#1e293b]/50 last:border-0 ${isNext ? 'bg-emerald-50 dark:bg-emerald-500/10' : 'hover:bg-slate-50 dark:hover:bg-[#1a2333]'}`}>
+                                  <td className={`px-6 py-4 font-bold text-xs uppercase ${isNext ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-500 dark:text-slate-400'}`}>
+                                    {isNext ? (
+                                      <div className="flex items-center gap-2">
+                                        <span className="w-2 h-2 rounded-full bg-emerald-500 dark:bg-emerald-400 animate-pulse"></span>
+                                        {row.mes}
+                                      </div>
+                                    ) : row.mes}
+                                  </td>
+                                  <td className="px-6 py-4 text-center">
+                                      <span className={`px-3 py-1.5 rounded-lg text-xs font-black tracking-wide border ${isNext ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/30' : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-600'}`}>
+                                        {row.data}
+                                      </span>
+                                  </td>
+                                  <td className={`px-6 py-4 font-bold uppercase ${isNext ? 'text-emerald-600 dark:text-emerald-300' : 'text-slate-800 dark:text-slate-200'}`}>{row.mogi}</td>
+                                  <td className={`px-6 py-4 font-bold uppercase ${isNext ? 'text-emerald-600 dark:text-emerald-300' : 'text-slate-800 dark:text-slate-200'}`}>{row.suzano}</td>
+                                </tr>
+                              );
+                            })
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 </div>
               )}
