@@ -290,6 +290,26 @@ export default function App() {
   const [uploading, setUploading] = useState(false);
   const [uploadMsg, setUploadMsg] = useState('');
 
+
+// Adicione este useEffect logo junto aos outros useEffects principais
+  useEffect(() => {
+    // Insere um estado inicial no histórico para sabermos quando o usuário está na home
+    window.history.pushState({ page: 'HOME' }, '');
+
+    const handlePopState = (event) => {
+      // Se o usuário estiver em alguma subcategoria, aba interna ou busca global e clicar em voltar
+      if (selectedSubCategory || activeTab !== 'HOME' || searchTerm !== '') {
+        // Impede que o app saia e volta o estado da aplicação para a Home ou Passo Anterior
+        window.history.pushState({ page: 'HOME' }, '');
+        handleGoHome();
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [activeTab, selectedSubCategory, searchTerm]);
+
+
   useEffect(() => {
     localStorage.setItem('theme', theme);
     if (theme === 'dark') {
