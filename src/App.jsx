@@ -1039,7 +1039,7 @@ export default function App() {
         <div onClick={handleGoHome} className="p-6 flex items-center gap-3 cursor-pointer group border-b border-slate-200 dark:border-[#1e293b]/60">
           <div className="w-10 h-10 flex items-center justify-center flex-shrink-0 text-blue-600 dark:text-blue-400">
             <img 
-              src="public/cabec.svg" 
+              src="cabec.svg" 
               alt="Logo" 
               className="w-full h-full object-contain" 
               style={{ filter: 'invert(37%) sepia(87%) saturate(1832%) hue-rotate(202deg) brightness(97%) contrast(101%)' }}
@@ -1059,7 +1059,7 @@ export default function App() {
               <svg className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
               <input
                 type="text"
-                placeholder="Busca global..."
+                placeholder="Filtrar produtos..."
                 value={searchTerm}
                 onChange={(e) => {
                   setSearchTerm(e.target.value);
