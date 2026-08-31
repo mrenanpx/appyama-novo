@@ -379,7 +379,7 @@ export default function App() {
 
           const folderKey = selectedTarget.folderId;
           const historicoAtual = uploadHistory[folderKey] || [];
-          const novoHistoricoLista = [novoRegistro, ...historicoAtual].slice(0, 3); // Mantém apenas os últimos 8
+          const novoHistoricoLista = [novoRegistro, ...historicoAtual].slice(0, 3); // Mantém apenas os últimos 3
           
           const novoHistoricoCompleto = {
             ...uploadHistory,
@@ -1065,7 +1065,7 @@ export default function App() {
 
             {uploadMsg && <p className="text-center text-xs font-semibold mt-4 text-slate-600 dark:text-slate-300">{uploadMsg}</p>}
 
-            {/* Seção com o Histórico dos Últimos 8 Uploads */}
+            {/* Seção com o Histórico dos Últimos 3 Uploads */}
             {selectedTarget && uploadHistory[selectedTarget.folderId] && uploadHistory[selectedTarget.folderId].length > 0 && (
               <div className="mt-6 pt-5 border-t border-slate-200 dark:border-[#1e293b]">
                 <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">Últimos Arquivos Enviados:</div>
@@ -1355,8 +1355,16 @@ export default function App() {
                                           <td className="px-6 py-4 font-bold text-slate-500 dark:text-slate-500 text-xs">{product.id}</td>
                                           <td className="px-6 py-4 font-extrabold text-slate-800 dark:text-slate-200 uppercase min-w-[240px]">{product.name}</td>
                                           <td className="px-6 py-4 text-slate-600 dark:text-slate-400 font-medium text-[13px]">{product.measure || '-'}</td>
-                                          <td className="px-6 py-4 text-right text-slate-600 dark:text-slate-400 font-medium text-[13px]">{product.borrachaPrice > 0 ? formatPrice(product.borrachaPrice) : '-'}</td>
-                                          <td className="px-6 py-4 text-right text-slate-600 dark:text-slate-400 font-medium text-[13px]">{product.almofadaPrice > 0 ? formatPrice(product.almofadaPrice) : '-'}</td>
+                                          <td className="px-6 py-4 text-right align-middle">
+                                            {product.borrachaPrice > 0 ? (
+                                              <span className="text-blue-600 dark:text-blue-400 font-black text-[17px] block bg-blue-50 dark:bg-blue-500/10 px-2 py-2 rounded-lg ml-auto w-[120px] text-center border border-blue-200 dark:border-blue-500/40 tracking-wide whitespace-nowrap">{formatPrice(product.borrachaPrice)}</span>
+                                            ) : <span className="text-slate-400">-</span>}
+                                          </td>
+                                          <td className="px-6 py-4 text-right align-middle">
+                                            {product.almofadaPrice > 0 ? (
+                                              <span className="text-amber-600 dark:text-amber-400 font-black text-[17px] block bg-amber-50 dark:bg-amber-500/10 px-2 py-2 rounded-lg ml-auto w-[120px] text-center border border-amber-200 dark:border-amber-500/40 tracking-wide whitespace-nowrap">{formatPrice(product.almofadaPrice)}</span>
+                                            ) : <span className="text-slate-400">-</span>}
+                                          </td>
                                           <td className="px-6 py-4 text-right align-middle">
                                             <span className="text-emerald-600 dark:text-emerald-400 font-black text-[17px] block bg-emerald-50 dark:bg-emerald-500/10 px-2 py-2 rounded-lg ml-auto w-[120px] text-center border border-emerald-200 dark:border-emerald-500/40 tracking-wide whitespace-nowrap">{formatPrice(product.price)}</span>
                                           </td>
@@ -1463,7 +1471,7 @@ export default function App() {
 
                   {activeTab === 'SERVIÇOS' && <ServiceCalculator subCat={selectedSubCategory} formatPrice={formatPrice} />}
 
-                  <div className="bg-white dark:bg-gradient-to-b dark:from-[#101726] dark:via-[#0d131f] dark:to-[#090d16] border border-slate-200 dark:border-[#1e293b]/80 rounded-2xl overflow-hidden shadow-2xl">
+                  <div className={`bg-white dark:bg-gradient-to-b dark:from-[#101726] dark:via-[#0d131f] dark:to-[#090d16] border border-slate-200 dark:border-[#1e293b]/80 rounded-2xl overflow-hidden shadow-2xl ${isMadeira ? 'max-w-xl mx-auto w-full' : ''}`}>
                     <div className="overflow-x-auto">
                       <table className="w-full text-left border-collapse">
                         <thead>
@@ -1602,8 +1610,16 @@ export default function App() {
                                       <td className="px-6 py-4 font-bold text-slate-500 dark:text-slate-500 text-xs">{product.id}</td>
                                       <td className="px-6 py-4 font-extrabold text-slate-800 dark:text-slate-200 uppercase min-w-[240px]">{product.name}</td>
                                       <td className="px-6 py-4 text-slate-600 dark:text-slate-400 font-medium text-[13px]">{product.measure || '-'}</td>
-                                      <td className="px-6 py-4 text-right text-slate-600 dark:text-slate-400 font-medium text-[13px]">{product.borrachaPrice > 0 ? formatPrice(product.borrachaPrice) : '-'}</td>
-                                      <td className="px-6 py-4 text-right text-slate-600 dark:text-slate-400 font-medium text-[13px]">{product.almofadaPrice > 0 ? formatPrice(product.almofadaPrice) : '-'}</td>
+                                      <td className="px-6 py-4 text-right align-middle">
+                                        {product.borrachaPrice > 0 ? (
+                                          <span className="text-blue-600 dark:text-blue-400 font-black text-[17px] block bg-blue-50 dark:bg-blue-500/10 px-2 py-2 rounded-lg ml-auto w-[120px] text-center border border-blue-200 dark:border-blue-500/40 tracking-wide whitespace-nowrap">{formatPrice(product.borrachaPrice)}</span>
+                                        ) : <span className="text-slate-400">-</span>}
+                                      </td>
+                                      <td className="px-6 py-4 text-right align-middle">
+                                        {product.almofadaPrice > 0 ? (
+                                          <span className="text-amber-600 dark:text-amber-400 font-black text-[17px] block bg-amber-50 dark:bg-amber-500/10 px-2 py-2 rounded-lg ml-auto w-[120px] text-center border border-amber-200 dark:border-amber-500/40 tracking-wide whitespace-nowrap">{formatPrice(product.almofadaPrice)}</span>
+                                        ) : <span className="text-slate-400">-</span>}
+                                      </td>
                                       <td className="px-6 py-4 text-right align-middle">
                                         <span className="text-emerald-600 dark:text-emerald-400 font-black text-[17px] block bg-emerald-50 dark:bg-emerald-500/10 px-2 py-2 rounded-lg ml-auto w-[120px] text-center border border-emerald-200 dark:border-emerald-500/40 tracking-wide whitespace-nowrap">{formatPrice(product.price)}</span>
                                       </td>
