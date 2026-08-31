@@ -39,10 +39,39 @@ import {
   RefreshCw, 
   PenTool, 
   FileArchive,
-  Copyright,
   Menu,
-  X
+  X,
+  Minus,
+  Plus,
+  ChevronsUp,
+  Search,
+  MapPin,
+  Building,
+  ExternalLink,
+  Copy
 } from 'lucide-react';
+
+const showToast = (message) => {
+  const toast = document.createElement('div');
+  toast.className = 'fixed bottom-10 left-1/2 -translate-x-1/2 bg-slate-900 dark:bg-emerald-600 text-white px-5 py-2.5 rounded-full shadow-2xl z-[9999] text-sm font-bold flex items-center gap-2 animate-fade-in-up border border-slate-700 dark:border-emerald-500/50';
+  toast.innerHTML = `<svg class="w-4 h-4 text-emerald-400 dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> ${message}`;
+  document.body.appendChild(toast);
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transition = 'opacity 0.4s ease';
+    setTimeout(() => toast.remove(), 400);
+  }, 2500);
+};
+
+const copyToClipboard = async (text) => {
+  try {
+    await navigator.clipboard.writeText(text);
+    showToast("Orçamento copiado!");
+  } catch (err) {
+    console.error('Erro ao copiar:', err);
+    alert('Erro ao copiar o texto.');
+  }
+};
 
 const regrasProdutos = {
   "BASTAO": { minL: 50, maxL: 200, minA: 50, maxA: 1000, minQtd: 1, minVal: 60, fator: 1.24, isAdesivo: false },
@@ -96,6 +125,8 @@ const GraficaRow = ({ product, formatPrice }) => {
     a: regraCalc ? regraCalc.minA : 0, 
     q: regraCalc ? regraCalc.minQtd : 1 
   });
+  
+  const [pulse, setPulse] = useState(false);
 
   const handleCalcBlur = (field, val) => {
     let v = Number(val);
@@ -135,6 +166,23 @@ const GraficaRow = ({ product, formatPrice }) => {
 
   const calcRes = regraCalc ? getCalculatedResult() : null;
 
+  useEffect(() => {
+    if (calcRes && calcRes.total > 0) {
+      setPulse(true);
+      const timer = setTimeout(() => setPulse(false), 300);
+      return () => clearTimeout(timer);
+    }
+  }, [calcRes?.total]);
+
+  const getPreviewDimensions = () => {
+    const w = calcValues.l || regraCalc.minL;
+    const h = calcValues.a || regraCalc.minA;
+    const max = Math.max(w, h);
+    const scale = 130 / max; 
+    return { width: w * scale, height: h * scale };
+  };
+  const previewBox = regraCalc ? getPreviewDimensions() : {width:0, height:0};
+
   return (
     <React.Fragment>
       <tr className={`transition-colors border-b border-slate-200 dark:border-[#1e293b]/50 ${regraCalc ? 'bg-slate-100 dark:bg-[#1a2333] border-b-0' : 'hover:bg-slate-50 dark:hover:bg-[#1a2333] last:border-0'}`}>
@@ -151,68 +199,133 @@ const GraficaRow = ({ product, formatPrice }) => {
         <td className="px-6 py-4">
           {product.deadline ? (
             <span className="mx-auto flex items-center justify-center w-fit text-slate-600 dark:text-slate-400 text-[11px] font-semibold border border-slate-300 dark:border-slate-600/50 bg-slate-100 dark:bg-slate-800/50 px-3 py-1.5 rounded-full whitespace-nowrap">
-              <svg className="w-3.5 h-3.5 mr-1.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+              <Clock className="w-3.5 h-3.5 mr-1.5 opacity-70" />
               {product.deadline}
             </span>
           ) : <div className="text-center text-slate-400 dark:text-slate-600">-</div>}
         </td>
         <td className="px-6 py-4 text-right align-middle">
           {!regraCalc && (
-            <span className="text-emerald-600 dark:text-emerald-400 font-black text-[17px] block bg-emerald-50 dark:bg-emerald-500/10 px-2 py-2 rounded-lg ml-auto w-[120px] text-center border border-emerald-200 dark:border-emerald-500/40 tracking-wide whitespace-nowrap">
-              {formatPrice(product.price)}
-            </span>
+            <div className="flex items-center justify-end gap-2">
+              <span className="text-emerald-600 dark:text-emerald-400 font-black text-[17px] block bg-emerald-50 dark:bg-emerald-500/10 px-2 py-2 rounded-lg ml-auto w-[120px] text-center border border-emerald-200 dark:border-emerald-500/40 tracking-wide whitespace-nowrap">
+                {formatPrice(product.price)}
+              </span>
+              <button 
+                onClick={() => copyToClipboard(`📋 *Orçamento Yama Print*\n*Produto:* ${product.name}\n${product.description && product.description !== '-' ? `*Material:* ${product.description}\n` : ''}${product.quantity ? `*Qtd:* ${product.quantity}\n` : ''}${product.measure ? `*Medida:* ${product.measure}\n` : ''}*Prazo:* ${product.deadline || '-'}\n*Total:* ${formatPrice(product.price)}`)}
+                className="p-2.5 bg-blue-100 hover:bg-blue-200 dark:bg-blue-500/10 dark:hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 rounded-lg transition-colors cursor-pointer"
+                title="Copiar Orçamento"
+              >
+                <Copy className="w-5 h-5" />
+              </button>
+            </div>
           )}
         </td>
       </tr>
 
       {regraCalc && (
-        <tr className="border-b border-slate-200 dark:border-[#1e293b]/50 bg-slate-50 dark:bg-[#161e2e]">
+        <tr className="border-b border-slate-200 dark:border-[#1e293b]/50 bg-slate-100 dark:bg-[#1a2333]">
           <td colSpan="5" className="p-0">
-            <div className="border-l-2 border-blue-500 p-6 m-4 mt-0 bg-white dark:bg-[#0b0e14] rounded-r-xl border-y border-r border-slate-200 dark:border-[#1e293b] shadow-inner">
-              <div className="flex items-center gap-2 mb-6">
-                <div className="text-blue-600 dark:text-blue-500 font-black text-[13px] flex items-center gap-2 uppercase tracking-wide">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
-                  Painel de Orçamento
+            <div className="m-4 mt-0 bg-white/80 dark:bg-[#0b0e14]/80 backdrop-blur-md rounded-2xl border border-blue-500/20 shadow-xl overflow-hidden ring-1 ring-black/5 dark:ring-white/5 transition-all">
+              
+              <div className="bg-gradient-to-r from-blue-500/10 to-transparent p-4 border-b border-slate-200/50 dark:border-[#1e293b]/50 flex items-center justify-between">
+                <div className="text-blue-700 dark:text-blue-400 font-black text-[13px] flex items-center gap-2 uppercase tracking-wide">
+                  <Maximize className="w-4 h-4" />
+                  Calculadora
                 </div>
-                <div className="text-slate-500 text-[11px] font-semibold ml-2">
-                  ("L": Mín {regraCalc.minL}cm / Máx {regraCalc.maxL}cm | "A": Mín {regraCalc.minA}cm / Máx {regraCalc.maxA}cm)
+                <div className="text-slate-500 dark:text-slate-400 text-[10px] font-semibold flex gap-3">
+                  <span>Limites:</span>
+                  <span className="px-2 py-0.5 bg-slate-200 dark:bg-slate-800 rounded">L: {regraCalc.minL} a {regraCalc.maxL}cm</span>
+                  <span className="px-2 py-0.5 bg-slate-200 dark:bg-slate-800 rounded">A: {regraCalc.minA} a {regraCalc.maxA}cm</span>
                 </div>
               </div>
 
-              <div className="flex flex-wrap gap-5 mb-8">
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-1.5 uppercase">Largura (cm)</label>
-                  <input type="number" value={calcValues.l || ''} onChange={(e) => setCalcValues(p => ({...p, l: e.target.value}))} onBlur={(e) => handleCalcBlur('l', e.target.value)} className="bg-slate-50 dark:bg-[#121826] border border-slate-300 dark:border-[#1e293b] rounded-lg px-4 py-2.5 w-32 text-slate-900 dark:text-white font-medium focus:outline-none focus:border-blue-500 transition-colors shadow-inner" />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-1.5 uppercase">Altura (cm)</label>
-                  <input type="number" value={calcValues.a || ''} onChange={(e) => setCalcValues(p => ({...p, a: e.target.value}))} onBlur={(e) => handleCalcBlur('a', e.target.value)} className="bg-slate-50 dark:bg-[#121826] border border-slate-300 dark:border-[#1e293b] rounded-lg px-4 py-2.5 w-32 text-slate-900 dark:text-white font-medium focus:outline-none focus:border-blue-500 transition-colors shadow-inner" />
-                </div>
-                {regraCalc.isAdesivo && (
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-1.5 uppercase">Quantidade</label>
-                    <input type="number" value={calcValues.q || ''} onChange={(e) => setCalcValues(p => ({...p, q: e.target.value}))} onBlur={(e) => handleCalcBlur('q', e.target.value)} className="bg-slate-50 dark:bg-[#121826] border border-slate-300 dark:border-[#1e293b] rounded-lg px-4 py-2.5 w-32 text-slate-900 dark:text-white font-medium focus:outline-none focus:border-blue-500 transition-colors shadow-inner" />
+              <div className="p-6 flex flex-col lg:flex-row gap-10 items-center justify-between">
+                
+                <div className="flex-1 w-full flex flex-col gap-4 max-w-sm">
+                  <div className="flex items-center justify-between bg-slate-50 dark:bg-[#121826] border border-slate-300 dark:border-[#1e293b] rounded-xl p-3 shadow-inner focus-within:ring-2 focus-within:ring-blue-500/50 transition-all">
+                    <div className="flex items-center gap-3 text-slate-500 dark:text-slate-400">
+                      <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M8 7h8M8 17h8M5 12h14m-4-4 4 4-4 4M9 8l-4 4 4 4"/></svg>
+                      <label className="text-[11px] font-bold uppercase tracking-wider">Largura (cm)</label>
+                    </div>
+                    <input type="number" value={calcValues.l || ''} onChange={(e) => setCalcValues(p => ({...p, l: e.target.value}))} onBlur={(e) => handleCalcBlur('l', e.target.value)} className="w-24 bg-transparent text-right text-lg text-slate-900 dark:text-white font-black focus:outline-none" />
                   </div>
-                )}
-              </div>
 
-              <div className="bg-slate-50 dark:bg-[#121826] border border-slate-200 dark:border-[#1e293b] rounded-xl p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                  <div className="text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">Detalhes do Cálculo</div>
-                  {calcValues.l === 0 || calcValues.a === 0 ? (
-                    <div className="text-slate-400 text-sm font-medium">Aguardando inserção de valores...</div>
-                  ) : (
-                    <div className="text-slate-700 dark:text-slate-300 text-sm font-medium">
-                      Tamanho Aplicado: {calcRes.l}×{calcRes.a}cm <span className="mx-2 text-slate-300 dark:text-slate-600">|</span> Qtd: {calcRes.q} <span className="mx-2 text-slate-300 dark:text-slate-600">|</span> Área Total: {calcRes.area.toFixed(2)} m²
+                  <div className="flex items-center justify-between bg-slate-50 dark:bg-[#121826] border border-slate-300 dark:border-[#1e293b] rounded-xl p-3 shadow-inner focus-within:ring-2 focus-within:ring-blue-500/50 transition-all">
+                    <div className="flex items-center gap-3 text-slate-500 dark:text-slate-400">
+                      <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M7 8v8M17 8v8M12 5v14m-4-4 4 4 4-4M8 9l4-4 4 4"/></svg>
+                      <label className="text-[11px] font-bold uppercase tracking-wider">Altura (cm)</label>
+                    </div>
+                    <input type="number" value={calcValues.a || ''} onChange={(e) => setCalcValues(p => ({...p, a: e.target.value}))} onBlur={(e) => handleCalcBlur('a', e.target.value)} className="w-24 bg-transparent text-right text-lg text-slate-900 dark:text-white font-black focus:outline-none" />
+                  </div>
+
+                  {regraCalc.isAdesivo && (
+                    <div className="flex items-center justify-between bg-slate-50 dark:bg-[#121826] border border-slate-300 dark:border-[#1e293b] rounded-xl p-2.5 shadow-inner transition-all">
+                      <div className="flex items-center gap-3 pl-1 text-slate-500 dark:text-slate-400">
+                        <Layers className="w-4 h-4 text-emerald-500" />
+                        <label className="text-[11px] font-bold uppercase tracking-wider">Quantidade</label>
+                      </div>
+                      <div className="flex items-center gap-1 bg-white dark:bg-[#0b0e14] border border-slate-200 dark:border-[#27354f] rounded-lg p-1 shadow-sm">
+                        <button onClick={() => handleCalcBlur('q', (calcValues.q || regraCalc.minQtd) - 1)} className="w-7 h-7 flex items-center justify-center rounded text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"><Minus className="w-4 h-4" /></button>
+                        <input type="number" value={calcValues.q || ''} onChange={(e) => setCalcValues(p => ({...p, q: e.target.value}))} onBlur={(e) => handleCalcBlur('q', e.target.value)} className="w-12 text-center bg-transparent text-slate-900 dark:text-white font-black focus:outline-none" />
+                        <button onClick={() => setCalcValues(p => ({...p, q: (Number(p.q) || 0) + 1}))} className="w-7 h-7 flex items-center justify-center rounded text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"><Plus className="w-4 h-4" /></button>
+                      </div>
                     </div>
                   )}
                 </div>
-                <div className="text-right w-full md:w-auto">
-                  <div className="text-slate-500 text-[10px] font-black uppercase tracking-wider mb-1">Valor Final Calculado</div>
-                  <div className={`text-3xl font-black ${calcRes.total > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-600'}`}>
-                    {calcRes.total > 0 ? formatPrice(calcRes.total) : 'R$ 0,00'}
+
+                <div className="flex-1 flex justify-center items-center min-h-[180px] w-full">
+                  <div className="relative flex items-center justify-center mt-6 ml-6">
+                    
+                    <div className="absolute -top-7 w-full flex items-center justify-between text-blue-600 dark:text-blue-400">
+                      <span className="text-xs font-bold leading-none">←</span>
+                      <span className="text-[11px] font-black tracking-widest">{calcRes.l}cm</span>
+                      <span className="text-xs font-bold leading-none">→</span>
+                    </div>
+
+                    <div className="absolute -left-9 h-full flex flex-col items-center justify-between text-blue-600 dark:text-blue-400">
+                      <span className="text-xs font-bold leading-none">↑</span>
+                      <span className="text-[11px] font-black tracking-widest -rotate-90">{calcRes.a}cm</span>
+                      <span className="text-xs font-bold leading-none">↓</span>
+                    </div>
+
+                    <div 
+                      className="bg-blue-500/10 border-2 border-blue-500/60 rounded-md transition-all duration-300 flex items-center justify-center shadow-[0_0_20px_rgba(59,130,246,0.15)] relative overflow-hidden group"
+                      style={{ width: `${previewBox.width}px`, height: `${previewBox.height}px` }}
+                    >
+                      <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(59,130,246,0.05)_50%,transparent_75%)] bg-[length:10px_10px]"></div>
+                      {regraCalc.isAdesivo && (
+                        <div className="z-10 bg-white/90 dark:bg-[#0b0e14]/90 backdrop-blur-sm px-2 py-1 rounded border border-blue-500/30 text-blue-700 dark:text-blue-300 font-black text-xs md:text-sm drop-shadow-md">
+                          {calcRes.q}x
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
+
+                <div className="w-full lg:w-[280px] flex flex-col gap-3">
+                  <div className="bg-slate-50/50 dark:bg-[#121826]/50 rounded-xl border border-slate-200 dark:border-[#1e293b] p-3 text-center shadow-inner">
+                    <div className="text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">Resumo da Área</div>
+                    <div className="text-slate-700 dark:text-slate-300 text-xs font-bold">
+                      {calcRes.area.toFixed(2)} m²
+                    </div>
+                  </div>
+
+                  <div className={`p-4 rounded-xl shadow-lg transition-transform duration-300 flex flex-col items-center justify-center border relative ${calcRes.total > 0 ? 'bg-gradient-to-br from-emerald-500 to-teal-600 border-emerald-400 shadow-emerald-500/20' : 'bg-slate-200 dark:bg-slate-800 border-slate-300 dark:border-slate-700'} ${pulse ? 'scale-105' : 'scale-100'}`}>
+                    <div className="text-white/80 text-[10px] font-black uppercase tracking-widest mb-1">Valor Total Orçado</div>
+                    <div className={`text-4xl font-black tracking-tight ${calcRes.total > 0 ? 'text-white drop-shadow-md' : 'text-slate-400 dark:text-slate-500'}`}>
+                      {calcRes.total > 0 ? formatPrice(calcRes.total) : 'R$ 0,00'}
+                    </div>
+                    {calcRes.total > 0 && (
+                      <button 
+                        onClick={() => copyToClipboard(`📋 *Orçamento Yama Print*\n*Produto:* ${product.name}\n${product.description && product.description !== '-' ? `*Material:* ${product.description}\n` : ''}*Medida:* ${calcRes.l}x${calcRes.a} cm\n*Área:* ${calcRes.area.toFixed(2)} m²\n*Qtd:* ${calcRes.q}\n*Prazo:* ${product.deadline || '-'}\n*Valor Total:* ${formatPrice(calcRes.total)}`)}
+                        className="absolute -bottom-3 w-[80%] py-1.5 bg-white text-emerald-600 dark:bg-[#0b0e14] dark:text-emerald-400 font-black text-[10px] uppercase rounded-full shadow-lg flex items-center justify-center gap-1.5 transition-transform hover:scale-105 cursor-pointer border border-emerald-200 dark:border-emerald-500/30"
+                      >
+                        <Copy className="w-3.5 h-3.5" /> Copiar Orçamento
+                      </button>
+                    )}
+                  </div>
+                </div>
+
               </div>
             </div>
           </td>
@@ -245,27 +358,110 @@ const ServiceCalculator = ({ subCat, formatPrice }) => {
   const totalA4 = qtdA4 * pA4;
   const totalA3 = qtdA3 * pA3;
 
+  const getNextTierInfo = (qtd) => {
+    let tiers = [];
+    if (tipo === "COPIA") tiers = [10, 50, 199];
+    else if (tipo === "IMPRESSÃO P/B" || tipo === "IMPRESSÃO PB") tiers = [10, 20, 30, 80, 199];
+    else if (tipo === "IMPRESSÃO COLORIDA") tiers = [10, 20, 50];
+
+    for (let t of tiers) {
+      if (qtd <= t) return { faltam: (t + 1) - qtd, proximoAlvo: t + 1 };
+    }
+    return null;
+  };
+
+  const tierA4 = getNextTierInfo(qtdA4);
+  const tierA3 = getNextTierInfo(qtdA3);
+
+  const Stepper = ({ val, setVal }) => (
+    <div className="flex items-center gap-1 bg-white dark:bg-[#121826] border border-slate-300 dark:border-[#1e293b] rounded-xl p-1 shadow-sm transition-all focus-within:ring-2 focus-within:ring-blue-500/50">
+      <button onClick={() => setVal(Math.max(0, val - 10))} className="w-8 h-9 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" title="-10"><ChevronsUp className="w-4 h-4 rotate-180" /></button>
+      <button onClick={() => setVal(Math.max(0, val - 1))} className="w-9 h-9 flex items-center justify-center rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors bg-slate-50 dark:bg-slate-800/50"><Minus className="w-4 h-4" /></button>
+      <input type="number" value={val || ''} onChange={(e) => setVal(Math.max(0, Number(e.target.value)))} className="w-16 text-center bg-transparent text-slate-900 dark:text-white font-black text-lg focus:outline-none" />
+      <button onClick={() => setVal(val + 1)} className="w-9 h-9 flex items-center justify-center rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors bg-blue-50 dark:bg-blue-500/10"><Plus className="w-4 h-4" /></button>
+      <button onClick={() => setVal(val + 10)} className="w-8 h-9 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" title="+10"><ChevronsUp className="w-4 h-4" /></button>
+    </div>
+  );
+
   return (
-    <div className="bg-white dark:bg-[#121826] border border-slate-200 dark:border-[#1e293b] rounded-xl p-6 mb-6 shadow-sm">
-      <h4 className="text-[13px] font-bold text-blue-600 dark:text-blue-400 flex items-center gap-2 mb-4 uppercase tracking-wide">
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
-        Calculadora de {tipo}
+    <div className="bg-white dark:bg-[#121826] border border-slate-200 dark:border-[#1e293b] rounded-2xl p-6 mb-6 shadow-sm">
+      <h4 className="text-[13px] font-bold text-blue-600 dark:text-blue-400 flex items-center gap-2 mb-6 uppercase tracking-wide">
+        <Printer className="w-4 h-4" />
+        Simulador de {tipo}
       </h4>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div className="bg-slate-50 dark:bg-[#0b0e14] p-5 rounded-xl border border-slate-200 dark:border-[#1e293b] shadow-inner">
-          <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-2 uppercase tracking-wider">Qtd A4:</label>
-          <input type="number" value={qtdA4 || ''} onChange={(e) => setQtdA4(Number(e.target.value))} className="w-full bg-white dark:bg-[#121826] border border-slate-300 dark:border-[#1e293b] rounded-lg px-4 py-2.5 text-slate-900 dark:text-white font-medium focus:outline-none focus:border-blue-500 transition-colors mb-3" />
-          <div className="flex items-center justify-between border-t border-slate-200 dark:border-[#1e293b] pt-3">
-             <span className="text-xs text-slate-500 font-semibold">Valor Final:</span>
-             <span className="text-emerald-600 dark:text-emerald-400 font-black text-lg">{formatPrice(totalA4)}</span>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className={`p-5 rounded-2xl border transition-all duration-300 flex flex-col justify-between ${qtdA4 > 0 ? 'bg-blue-50/50 dark:bg-blue-500/5 border-blue-300 dark:border-blue-500/30 shadow-[0_0_15px_rgba(59,130,246,0.1)]' : 'bg-slate-50 dark:bg-[#0b0e14] border-slate-200 dark:border-[#1e293b] shadow-inner'}`}>
+          <div>
+            <div className="flex justify-between items-center mb-4">
+              <label className="text-[12px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-2">
+                <FileText className="w-4 h-4 text-blue-500" /> Formato A4
+              </label>
+              {qtdA4 > 0 && <span className="text-[10px] bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 px-2 py-1 rounded font-bold">{formatPrice(pA4)}/unid</span>}
+            </div>
+            <Stepper val={qtdA4} setVal={setQtdA4} />
+            
+            <div className="h-6 mt-3">
+              {qtdA4 > 0 && tierA4 && (
+                <div className="text-[11px] font-semibold text-amber-600 dark:text-amber-400 animate-fade-in flex items-center gap-1.5">
+                  <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></div>
+                  Faltam {tierA4.faltam} unid para o valor baixar!
+                </div>
+              )}
+            </div>
+          </div>
+          
+          <div className="flex items-center justify-between border-t border-slate-200/60 dark:border-[#1e293b]/60 pt-4 mt-2">
+             <span className="text-[11px] text-slate-500 font-bold uppercase tracking-wider">Total A4:</span>
+             <div className="flex items-center gap-3">
+                <span className={`font-black text-2xl transition-colors ${qtdA4 > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'}`}>{formatPrice(totalA4)}</span>
+                {qtdA4 > 0 && (
+                  <button 
+                    onClick={() => copyToClipboard(`📋 *Orçamento Yama Print*\n*Serviço:* ${tipo}\n*Formato:* A4\n*Qtd:* ${qtdA4}\n*Total:* ${formatPrice(totalA4)}`)}
+                    className="p-2 bg-blue-100 hover:bg-blue-200 dark:bg-blue-500/10 dark:hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 rounded-lg transition-colors cursor-pointer"
+                    title="Copiar Orçamento"
+                  >
+                    <Copy className="w-4 h-4" />
+                  </button>
+                )}
+             </div>
           </div>
         </div>
-        <div className="bg-slate-50 dark:bg-[#0b0e14] p-5 rounded-xl border border-slate-200 dark:border-[#1e293b] shadow-inner">
-          <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-2 uppercase tracking-wider">Qtd A3:</label>
-          <input type="number" value={qtdA3 || ''} onChange={(e) => setQtdA3(Number(e.target.value))} className="w-full bg-white dark:bg-[#121826] border border-slate-300 dark:border-[#1e293b] rounded-lg px-4 py-2.5 text-slate-900 dark:text-white font-medium focus:outline-none focus:border-blue-500 transition-colors mb-3" />
-          <div className="flex items-center justify-between border-t border-slate-200 dark:border-[#1e293b] pt-3">
-             <span className="text-xs text-slate-500 font-semibold">Valor Final:</span>
-             <span className="text-emerald-600 dark:text-emerald-400 font-black text-lg">{formatPrice(totalA3)}</span>
+
+        <div className={`p-5 rounded-2xl border transition-all duration-300 flex flex-col justify-between ${qtdA3 > 0 ? 'bg-blue-50/50 dark:bg-blue-500/5 border-blue-300 dark:border-blue-500/30 shadow-[0_0_15px_rgba(59,130,246,0.1)]' : 'bg-slate-50 dark:bg-[#0b0e14] border-slate-200 dark:border-[#1e293b] shadow-inner'}`}>
+          <div>
+            <div className="flex justify-between items-center mb-4">
+              <label className="text-[12px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-2">
+                <FileText className="w-5 h-5 text-emerald-500" /> Formato A3
+              </label>
+              {qtdA3 > 0 && <span className="text-[10px] bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 px-2 py-1 rounded font-bold">{formatPrice(pA3)}/unid</span>}
+            </div>
+            <Stepper val={qtdA3} setVal={setQtdA3} />
+            
+            <div className="h-6 mt-3">
+              {qtdA3 > 0 && tierA3 && (
+                <div className="text-[11px] font-semibold text-amber-600 dark:text-amber-400 animate-fade-in flex items-center gap-1.5">
+                  <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></div>
+                  Faltam {tierA3.faltam} unid para o valor baixar!
+                </div>
+              )}
+            </div>
+          </div>
+          
+          <div className="flex items-center justify-between border-t border-slate-200/60 dark:border-[#1e293b]/60 pt-4 mt-2">
+             <span className="text-[11px] text-slate-500 font-bold uppercase tracking-wider">Total A3:</span>
+             <div className="flex items-center gap-3">
+               <span className={`font-black text-2xl transition-colors ${qtdA3 > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'}`}>{formatPrice(totalA3)}</span>
+               {qtdA3 > 0 && (
+                  <button 
+                    onClick={() => copyToClipboard(`📋 *Orçamento Yama Print*\n*Serviço:* ${tipo}\n*Formato:* A3\n*Qtd:* ${qtdA3}\n*Total:* ${formatPrice(totalA3)}`)}
+                    className="p-2 bg-blue-100 hover:bg-blue-200 dark:bg-blue-500/10 dark:hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 rounded-lg transition-colors cursor-pointer"
+                    title="Copiar Orçamento"
+                  >
+                    <Copy className="w-4 h-4" />
+                  </button>
+                )}
+             </div>
           </div>
         </div>
       </div>
@@ -290,8 +486,13 @@ export default function App() {
   const [uploading, setUploading] = useState(false);
   const [uploadMsg, setUploadMsg] = useState('');
   
-  // Estado para armazenar o histórico de uploads por pasta/destino
   const [uploadHistory, setUploadHistory] = useState({});
+
+  const [consultaType, setConsultaType] = useState('CEP');
+  const [consultaInput, setConsultaInput] = useState('');
+  const [consultaResult, setConsultaResult] = useState(null);
+  const [consultaLoading, setConsultaLoading] = useState(false);
+  const [consultaError, setConsultaError] = useState('');
 
   useEffect(() => {
     localStorage.setItem('theme', theme);
@@ -302,7 +503,6 @@ export default function App() {
     }
   }, [theme]);
 
-  // Carregar histórico de uploads do Firestore ao iniciar
   useEffect(() => {
     const fetchUploadHistory = async () => {
       try {
@@ -365,7 +565,6 @@ export default function App() {
         if (result.status === 'sucesso') {
           setUploadMsg('✅ Arquivo enviado com sucesso!');
           
-          // Registrar histórico do upload atual (Data, Hora, Descrição/Nome)
           const agora = new Date();
           const dataFormatada = agora.toLocaleDateString('pt-BR');
           const horaFormatada = agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
@@ -379,7 +578,7 @@ export default function App() {
 
           const folderKey = selectedTarget.folderId;
           const historicoAtual = uploadHistory[folderKey] || [];
-          const novoHistoricoLista = [novoRegistro, ...historicoAtual].slice(0, 3); // Mantém apenas os últimos 3
+          const novoHistoricoLista = [novoRegistro, ...historicoAtual].slice(0, 3);
           
           const novoHistoricoCompleto = {
             ...uploadHistory,
@@ -387,8 +586,6 @@ export default function App() {
           };
 
           setUploadHistory(novoHistoricoCompleto);
-
-          // Salvar histórico no Firestore
           await setDoc(doc(db, "settings", "historico_uploads"), novoHistoricoCompleto);
 
           setSelectedFile(null);
@@ -402,6 +599,120 @@ export default function App() {
         setUploading(false);
       }
     };
+  };
+
+  const formatPrice = (value) => {
+    if (typeof value === 'number') {
+      return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    }
+    return value;
+  };
+
+  const handleConsulta = async () => {
+    if (!consultaInput) return;
+    setConsultaLoading(true);
+    setConsultaError('');
+    setConsultaResult(null);
+
+    try {
+      const cleanInput = consultaInput.replace(/\D/g, '');
+      let url = '';
+      
+      if (consultaType === 'CEP') {
+        if (cleanInput.length !== 8) throw new Error('CEP deve conter 8 dígitos.');
+        url = `https://brasilapi.com.br/api/cep/v2/${cleanInput}`;
+      } else {
+        if (cleanInput.length !== 14) throw new Error('CNPJ deve conter 14 dígitos.');
+        url = `https://brasilapi.com.br/api/cnpj/v1/${cleanInput}`;
+      }
+
+      const response = await fetch(url);
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Dados não encontrados.');
+      }
+
+      setConsultaResult(data);
+    } catch (err) {
+      setConsultaError(err.message || 'Erro ao realizar a consulta.');
+    } finally {
+      setConsultaLoading(false);
+    }
+  };
+
+  const handlePrintConsulta = () => {
+    if (!consultaResult) return;
+
+    let title = consultaType === 'CEP' ? 'Comprovante de Consulta - CEP' : 'Comprovante de Consulta - CNPJ';
+    let content = '';
+
+    if (consultaType === 'CEP') {
+      content = `
+        <div class="header">CONSULTA DE CEP: ${consultaResult.cep}</div>
+        <table>
+          <tr><th>Estado</th><td>${consultaResult.state}</td></tr>
+          <tr><th>Cidade</th><td>${consultaResult.city}</td></tr>
+          <tr><th>Bairro</th><td>${consultaResult.neighborhood || '-'}</td></tr>
+          <tr><th>Logradouro</th><td>${consultaResult.street || '-'}</td></tr>
+        </table>
+      `;
+    } else {
+      const socios = consultaResult.qsa && consultaResult.qsa.length > 0 
+        ? consultaResult.qsa.map(s => s.nome_socio).join(', ') 
+        : 'Não informado';
+        
+      content = `
+        <div class="header">CONSULTA DE CNPJ: ${consultaResult.cnpj}</div>
+        <table>
+          <tr><th>Razão Social</th><td>${consultaResult.razao_social}</td></tr>
+          <tr><th>Nome Fantasia</th><td>${consultaResult.nome_fantasia || '-'}</td></tr>
+          <tr><th>Situação Cadastral</th><td>${consultaResult.descricao_situacao_cadastral}</td></tr>
+          <tr><th>Natureza Jurídica</th><td>${consultaResult.natureza_juridica || '-'}</td></tr>
+          <tr><th>Capital Social</th><td>${formatPrice(consultaResult.capital_social || 0)}</td></tr>
+          <tr><th>Atividade Principal</th><td>${consultaResult.cnae_fiscal_descricao}</td></tr>
+          <tr><th>Sócios / Adm</th><td>${socios}</td></tr>
+          <tr><th>Telefone</th><td>${consultaResult.ddd_telefone_1 || '-'}</td></tr>
+          <tr><th>Endereço</th><td>${consultaResult.logradouro}, ${consultaResult.numero} - ${consultaResult.bairro}, ${consultaResult.municipio} - ${consultaResult.uf} (${consultaResult.cep})</td></tr>
+        </table>
+      `;
+    }
+
+    const printWindow = window.open('', '_blank');
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>${title}</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 30px; color: #000; background: #fff; line-height: 1.5; }
+            .logo { font-size: 20px; font-weight: bold; margin-bottom: 20px; border-bottom: 2px solid #000; padding-bottom: 10px; }
+            .header { font-size: 16px; font-weight: bold; text-transform: uppercase; margin-bottom: 20px; background: #f2f2f2; padding: 10px; }
+            table { width: 100%; border-collapse: collapse; font-size: 13px; text-transform: uppercase; }
+            th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+            th { background-color: #f9f9f9; width: 30%; color: #555; }
+            td { font-weight: bold; }
+            @media print {
+              @page { margin: 1cm; }
+              body { -webkit-print-color-adjust: exact; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="logo">YAMA PRINT - RELATÓRIO DE CONSULTA</div>
+          ${content}
+          <div style="margin-top: 30px; font-size: 11px; color: #666; text-align: center;">
+            Documento gerado em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}
+          </div>
+          <script>
+            window.onload = function() { setTimeout(function() { window.print(); window.close(); }, 250); }
+          </script>
+        </body>
+      </html>
+    `;
+    printWindow.document.open();
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
   };
 
   const [loading, setLoading] = useState(true);
@@ -744,13 +1055,6 @@ export default function App() {
     }
   };
 
-  const formatPrice = (value) => {
-    if (typeof value === 'number') {
-      return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-    }
-    return value;
-  };
-
   const getHourTagClass = (horasStr) => {
     if (!horasStr || horasStr === '0' || horasStr === '0:00' || horasStr === '00:00') {
       return 'bg-slate-200 text-slate-500 border-slate-300 dark:bg-slate-500/10 dark:text-slate-400 dark:border-slate-500/30'; 
@@ -1034,18 +1338,17 @@ export default function App() {
   return (
     <div className="flex h-screen font-sans selection:bg-blue-600 selection:text-white overflow-hidden relative">
       
-      {/* Modal posicionado na raiz absoluta da tela para cobrir tudo perfeitamente e centralizar sem cortes */}
       {modalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4 overflow-y-auto">
           <div className="bg-white dark:bg-[#121826] border border-slate-200 dark:border-[#1e293b] rounded-2xl p-8 max-w-md w-full shadow-2xl page-transition relative my-auto">
             <button onClick={() => { setModalOpen(false); setSelectedFile(null); setUploadMsg(''); }} className="absolute top-6 right-6 text-slate-400 hover:text-slate-800 dark:hover:text-white cursor-pointer">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+              <X className="w-5 h-5" />
             </button>
 
             <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6 uppercase tracking-wide">Envio: {selectedTarget?.name}</h3>
             
             <label className="border-2 border-dashed border-slate-300 dark:border-[#27354f] hover:border-blue-500 dark:hover:border-blue-500 rounded-xl p-8 flex flex-col items-center justify-center cursor-pointer bg-slate-50 dark:bg-[#0b0e14] transition-colors mb-4 group">
-              <svg className="w-10 h-10 text-slate-400 dark:text-slate-500 group-hover:text-blue-500 dark:group-hover:text-blue-400 mb-3 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13l-3-3m0 0l-3 3m3-3v8m0-13a9 9 0 11-0 18 9 9 0 010-18z"></path></svg>
+              <Upload className="w-10 h-10 text-slate-400 dark:text-slate-500 group-hover:text-blue-500 dark:group-hover:text-blue-400 mb-3 transition-colors" />
               <span className="text-sm font-semibold text-slate-600 dark:text-slate-300 text-center">Clique para selecionar ou arraste o arquivo</span>
               <input type="file" onChange={handleFileChange} className="hidden" />
             </label>
@@ -1065,7 +1368,6 @@ export default function App() {
 
             {uploadMsg && <p className="text-center text-xs font-semibold mt-4 text-slate-600 dark:text-slate-300">{uploadMsg}</p>}
 
-            {/* Seção com o Histórico dos Últimos 3 Uploads */}
             {selectedTarget && uploadHistory[selectedTarget.folderId] && uploadHistory[selectedTarget.folderId].length > 0 && (
               <div className="mt-6 pt-5 border-t border-slate-200 dark:border-[#1e293b]">
                 <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">Últimos Arquivos Enviados:</div>
@@ -1134,7 +1436,6 @@ export default function App() {
 
       <aside className={`fixed md:static inset-y-0 left-0 w-64 flex-shrink-0 bg-gradient-to-b from-white via-slate-50 to-slate-100 dark:from-[#101726] dark:via-[#0d131f] dark:to-[#090d16] border-r border-slate-200 dark:border-[#1e293b]/80 flex flex-col h-full z-40 shadow-2xl transition-transform duration-300 ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
         
-        {/* Topo da Sidebar com o novo cabec.svg em SVG puro/tag img e cor alinhada ao subtítulo */}
         <div onClick={handleGoHome} className="p-6 flex items-center gap-3 cursor-pointer group border-b border-slate-200 dark:border-[#1e293b]/60">
           <div className="w-10 h-10 flex items-center justify-center flex-shrink-0 text-blue-600 dark:text-blue-400">
             <img 
@@ -1153,9 +1454,8 @@ export default function App() {
          <nav className="flex-1 p-4 flex flex-col justify-between overflow-y-auto">
           <div className="flex flex-col gap-2">
             
-            {/* Barra de Busca Global Discreta na Sidebar */}
             <div className="relative w-full mb-3">
-              <svg className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
               <input
                 type="text"
                 placeholder="Filtrar produtos..."
@@ -1182,9 +1482,9 @@ export default function App() {
 
             <SidebarButton icon={<Home className="w-5 h-5" />} id="HOME" label="Início" onClick={handleGoHome}/>
             
-            {/* Linha divisória isolando o Início do restante das opções */}
             <div className="my-3 border-t border-slate-200 dark:border-[#1e293b]"></div>
 
+            <SidebarButton icon={<Search className="w-5 h-5" />} id="CONSULTAS" label="Consulta CNPJ/CEP"/>
             <SidebarButton icon={<Package className="w-5 h-5" />} id="FORNECEDORES" label="Fornecedores"/>
             <SidebarButton icon={<Clock className="w-5 h-5" />} id="CONTROLE_HORAS" label="Controle de Horas"/>
             <SidebarButton icon={<CalendarDays className="w-5 h-5" />} id="ESCALA_FOLGAS" label="Escala de Folgas"/>
@@ -1218,7 +1518,6 @@ export default function App() {
           
           <div className="flex flex-col gap-6">
             
-            {/* Cabeçalho Sticky apenas com o Breadcrumb limpo */}
             <div className="sticky top-0 z-30 flex flex-col gap-2 bg-slate-200 dark:bg-[#0b0e14] py-2 transition-all">
               
               <div className="flex items-center flex-wrap gap-2 text-[13px] font-semibold bg-white dark:bg-[#121826] border border-slate-200 dark:border-[#1e293b] px-4 md:px-5 py-3.5 rounded-xl w-full shadow-sm transition-colors">
@@ -1264,7 +1563,7 @@ export default function App() {
               {activeTab === 'FORNECEDORES' && (
                 <div className="flex items-center gap-3 w-full">
                   <div className="relative flex-1 h-[46px]">
-                    <svg className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
                     <input
                       type="text"
                       placeholder="Buscar fornecedor..."
@@ -1568,23 +1867,41 @@ export default function App() {
                                 <td className="px-6 py-4 text-center">
                                   {item.deadline ? (
                                     <span className="mx-auto flex items-center justify-center w-fit text-slate-600 dark:text-slate-400 text-[11px] font-semibold border border-slate-300 dark:border-slate-600/50 bg-slate-100 dark:bg-slate-800/50 px-3 py-1.5 rounded-full whitespace-nowrap">
-                                      <svg className="w-3.5 h-3.5 mr-1.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                      <Clock className="w-3.5 h-3.5 mr-1.5 opacity-70" />
                                       {item.deadline}
                                     </span>
                                   ) : '-'}
                                 </td>
                                 <td className="px-6 py-4 text-right align-middle">
                                   {item.priceFrente > 0 ? (
-                                    <span className="text-emerald-600 dark:text-emerald-400 font-black text-[17px] block bg-emerald-50 dark:bg-emerald-500/10 px-2 py-2 rounded-lg ml-auto w-[110px] text-center border border-emerald-200 dark:border-emerald-500/40 tracking-wide whitespace-nowrap">
-                                      {formatPrice(item.priceFrente)}
-                                    </span>
+                                    <div className="flex items-center justify-end gap-2">
+                                      <span className="text-emerald-600 dark:text-emerald-400 font-black text-[17px] block bg-emerald-50 dark:bg-emerald-500/10 px-2 py-2 rounded-lg ml-auto w-[110px] text-center border border-emerald-200 dark:border-emerald-500/40 tracking-wide whitespace-nowrap">
+                                        {formatPrice(item.priceFrente)}
+                                      </span>
+                                      <button 
+                                        onClick={() => copyToClipboard(`📋 *Orçamento Yama Print*\n*Produto:* ${item.name} (Apenas Frente)\n${item.description && item.description !== '-' ? `*Material/Especificações:* ${item.description}\n` : ''}${item.quantity ? `*Qtd:* ${item.quantity}\n` : ''}${item.measure ? `*Medida:* ${item.measure}\n` : ''}*Prazo:* ${item.deadline || '-'}\n*Total:* ${formatPrice(item.priceFrente)}`)}
+                                        className="p-2.5 bg-blue-100 hover:bg-blue-200 dark:bg-blue-500/10 dark:hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 rounded-lg transition-colors cursor-pointer"
+                                        title="Copiar Orçamento"
+                                      >
+                                        <Copy className="w-5 h-5" />
+                                      </button>
+                                    </div>
                                   ) : <span className="text-slate-400">-</span>}
                                 </td>
                                 <td className="px-6 py-4 text-right align-middle">
                                   {item.priceVerso > 0 ? (
-                                    <span className="text-amber-600 dark:text-amber-400 font-black text-[17px] block bg-amber-50 dark:bg-amber-500/10 px-2 py-2 rounded-lg ml-auto w-[110px] text-center border border-amber-200 dark:border-amber-500/40 tracking-wide whitespace-nowrap">
-                                      {formatPrice(item.priceVerso)}
-                                    </span>
+                                    <div className="flex items-center justify-end gap-2">
+                                      <span className="text-amber-600 dark:text-amber-400 font-black text-[17px] block bg-amber-50 dark:bg-amber-500/10 px-2 py-2 rounded-lg ml-auto w-[110px] text-center border border-amber-200 dark:border-amber-500/40 tracking-wide whitespace-nowrap">
+                                        {formatPrice(item.priceVerso)}
+                                      </span>
+                                      <button 
+                                        onClick={() => copyToClipboard(`📋 *Orçamento Yama Print*\n*Produto:* ${item.name} (Frente e Verso)\n${item.description && item.description !== '-' ? `*Material/Especificações:* ${item.description}\n` : ''}${item.quantity ? `*Qtd:* ${item.quantity}\n` : ''}${item.measure ? `*Medida:* ${item.measure}\n` : ''}*Prazo:* ${item.deadline || '-'}\n*Total:* ${formatPrice(item.priceVerso)}`)}
+                                        className="p-2.5 bg-blue-100 hover:bg-blue-200 dark:bg-blue-500/10 dark:hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 rounded-lg transition-colors cursor-pointer"
+                                        title="Copiar Orçamento"
+                                      >
+                                        <Copy className="w-5 h-5" />
+                                      </button>
+                                    </div>
                                   ) : <span className="text-slate-400">-</span>}
                                 </td>
                               </tr>
@@ -1600,7 +1917,16 @@ export default function App() {
                                       <td className="px-6 py-4 font-bold text-slate-500 dark:text-slate-500 text-xs">{product.id}</td>
                                       <td className="px-6 py-4 font-extrabold text-slate-800 dark:text-slate-200 uppercase min-w-[240px]">{product.name}</td>
                                       <td className="px-6 py-4 text-right align-middle">
-                                        <span className="text-emerald-600 dark:text-emerald-400 font-black text-[17px] block bg-emerald-50 dark:bg-emerald-500/10 px-2 py-2 rounded-lg ml-auto w-[120px] text-center border border-emerald-200 dark:border-emerald-500/40 tracking-wide whitespace-nowrap">{formatPrice(product.price)}</span>
+                                        <div className="flex items-center justify-end gap-2">
+                                          <span className="text-emerald-600 dark:text-emerald-400 font-black text-[17px] block bg-emerald-50 dark:bg-emerald-500/10 px-2 py-2 rounded-lg ml-auto w-[120px] text-center border border-emerald-200 dark:border-emerald-500/40 tracking-wide whitespace-nowrap">{formatPrice(product.price)}</span>
+                                          <button 
+                                            onClick={() => copyToClipboard(`📋 *Orçamento Yama Print*\n*Produto:* ${product.name}\n${product.description && product.description !== '-' ? `*Especificações:* ${product.description}\n` : ''}*Total:* ${formatPrice(product.price)}`)}
+                                            className="p-2.5 bg-blue-100 hover:bg-blue-200 dark:bg-blue-500/10 dark:hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 rounded-lg transition-colors cursor-pointer"
+                                            title="Copiar Orçamento"
+                                          >
+                                            <Copy className="w-5 h-5" />
+                                          </button>
+                                        </div>
                                       </td>
                                     </tr>
                                   )}
@@ -1621,7 +1947,16 @@ export default function App() {
                                         ) : <span className="text-slate-400">-</span>}
                                       </td>
                                       <td className="px-6 py-4 text-right align-middle">
-                                        <span className="text-emerald-600 dark:text-emerald-400 font-black text-[17px] block bg-emerald-50 dark:bg-emerald-500/10 px-2 py-2 rounded-lg ml-auto w-[120px] text-center border border-emerald-200 dark:border-emerald-500/40 tracking-wide whitespace-nowrap">{formatPrice(product.price)}</span>
+                                        <div className="flex items-center justify-end gap-2">
+                                          <span className="text-emerald-600 dark:text-emerald-400 font-black text-[17px] block bg-emerald-50 dark:bg-emerald-500/10 px-2 py-2 rounded-lg ml-auto w-[120px] text-center border border-emerald-200 dark:border-emerald-500/40 tracking-wide whitespace-nowrap">{formatPrice(product.price)}</span>
+                                          <button 
+                                            onClick={() => copyToClipboard(`📋 *Orçamento Yama Print*\n*Produto:* ${product.name}\n${product.description && product.description !== '-' ? `*Especificações:* ${product.description}\n` : ''}${product.measure ? `*Medida:* ${product.measure}\n` : ''}*Carimbo Completo:* ${formatPrice(product.price)}`)}
+                                            className="p-2.5 bg-blue-100 hover:bg-blue-200 dark:bg-blue-500/10 dark:hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 rounded-lg transition-colors cursor-pointer"
+                                            title="Copiar Orçamento"
+                                          >
+                                            <Copy className="w-5 h-5" />
+                                          </button>
+                                        </div>
                                       </td>
                                     </tr>
                                   )}
@@ -1665,7 +2000,16 @@ export default function App() {
                                       )}
                                       {!isCopiaImpressao && !isCapa && !isEspiral && !isPlastificacao && (
                                         <td className="px-6 py-4 text-right align-middle">
-                                          <span className="text-emerald-600 dark:text-emerald-400 font-black text-[17px] block bg-emerald-50 dark:bg-emerald-500/10 px-2 py-2 rounded-lg ml-auto w-[120px] text-center border border-emerald-200 dark:border-emerald-500/40 tracking-wide whitespace-nowrap">{formatPrice(product.price)}</span>
+                                          <div className="flex items-center justify-end gap-2">
+                                            <span className="text-emerald-600 dark:text-emerald-400 font-black text-[17px] block bg-emerald-50 dark:bg-emerald-500/10 px-2 py-2 rounded-lg ml-auto w-[120px] text-center border border-emerald-200 dark:border-emerald-500/40 tracking-wide whitespace-nowrap">{formatPrice(product.price)}</span>
+                                            <button 
+                                              onClick={() => copyToClipboard(`📋 *Orçamento Yama Print*\n*Serviço:* ${product.name}\n${product.description && product.description !== '-' ? `*Especificações:* ${product.description}\n` : ''}*Total:* ${formatPrice(product.price)}`)}
+                                              className="p-2.5 bg-blue-100 hover:bg-blue-200 dark:bg-blue-500/10 dark:hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 rounded-lg transition-colors cursor-pointer"
+                                              title="Copiar Orçamento"
+                                            >
+                                              <Copy className="w-5 h-5" />
+                                            </button>
+                                          </div>
                                         </td>
                                       )}
                                     </tr>
@@ -1713,7 +2057,7 @@ export default function App() {
                             <td className="px-6 py-4 text-slate-600 dark:text-slate-300 font-medium text-xs">{sup.estoque}</td>
                             <td className="px-6 py-4">
                               <span className="bg-slate-200 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 px-2.5 py-1 rounded text-xs font-bold inline-flex items-center gap-1.5 whitespace-nowrap">
-                                <svg className="w-3 h-3 text-slate-500 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                <Clock className="w-3 h-3 text-slate-500 dark:text-slate-400" />
                                 {sup.prazo}
                               </span>
                             </td>
@@ -1753,7 +2097,7 @@ export default function App() {
                          Imprimir
                        </button>
                        <button onClick={() => fetchSheetData(true)} disabled={loadingHours} className="bg-blue-100 dark:bg-blue-600/10 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-500/30 hover:bg-blue-600 hover:text-white dark:hover:bg-blue-600 dark:hover:text-white transition-colors px-4 py-2 rounded-lg text-[13px] font-bold flex items-center gap-2 disabled:opacity-50 cursor-pointer shadow-sm">
-                         <svg className={`w-4 h-4 ${loadingHours ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                         <RefreshCw className={`w-4 h-4 ${loadingHours ? 'animate-spin' : ''}`} />
                          {loadingHours ? 'Sincronizando...' : 'Atualizar Dados'}
                        </button>
                      </div>
@@ -1803,7 +2147,7 @@ export default function App() {
                          Imprimir
                        </button>
                        <button onClick={() => fetchSheetData(true)} disabled={loadingHours} className="bg-blue-100 dark:bg-blue-600/10 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-500/30 hover:bg-blue-600 hover:text-white dark:hover:bg-blue-600 dark:hover:text-white transition-colors px-4 py-2 rounded-lg text-[13px] font-bold flex items-center gap-2 disabled:opacity-50 cursor-pointer shadow-sm">
-                         <svg className={`w-4 h-4 ${loadingHours ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                         <RefreshCw className={`w-4 h-4 ${loadingHours ? 'animate-spin' : ''}`} />
                          {loadingHours ? 'Sincronizando...' : 'Atualizar Dados'}
                        </button>
                      </div>
@@ -1855,6 +2199,176 @@ export default function App() {
                       </table>
                     </div>
                   </div>
+                </div>
+              )}
+
+              {activeTab === 'CONSULTAS' && (
+                <div className="flex flex-col gap-8 max-w-3xl mx-auto w-full">
+                  
+                  {/* Seção Consulta CNPJ / CEP */}
+                  <div className="bg-white dark:bg-[#121826] border border-slate-200 dark:border-[#1e293b] p-6 rounded-2xl shadow-xl flex flex-col gap-6">
+                    <h2 className="text-lg font-bold text-slate-900 dark:text-white uppercase tracking-wide flex items-center gap-2">
+                      <Search className="w-5 h-5 text-blue-500" />
+                      Consultas Rápidas
+                    </h2>
+
+                    <div className="flex bg-slate-100 dark:bg-[#0b0e14] p-1.5 rounded-xl border border-slate-200 dark:border-[#1e293b]">
+                      <button onClick={() => { setConsultaType('CEP'); setConsultaResult(null); setConsultaError(''); setConsultaInput(''); }} className={`flex-1 flex justify-center items-center gap-2 py-3 rounded-lg text-sm font-bold uppercase transition-all cursor-pointer ${consultaType === 'CEP' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}>
+                        <MapPin className="w-4 h-4" /> Consultar CEP
+                      </button>
+                      <button onClick={() => { setConsultaType('CNPJ'); setConsultaResult(null); setConsultaError(''); setConsultaInput(''); }} className={`flex-1 flex justify-center items-center gap-2 py-3 rounded-lg text-sm font-bold uppercase transition-all cursor-pointer ${consultaType === 'CNPJ' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}>
+                        <Building className="w-4 h-4" /> Consultar CNPJ
+                      </button>
+                    </div>
+
+                    <div className="flex items-center gap-3 w-full">
+                      <div className="relative flex-1 h-[50px]">
+                        <Search className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
+                        <input
+                          type="text"
+                          placeholder={consultaType === 'CEP' ? "Digite apenas números (Ex: 01001000)" : "Digite apenas números (Ex: 00000000000191)"}
+                          value={consultaInput}
+                          onChange={(e) => setConsultaInput(e.target.value.replace(/\D/g, ''))}
+                          onKeyDown={(e) => e.key === 'Enter' && handleConsulta()}
+                          className="w-full h-full bg-slate-50 dark:bg-[#0b0e14] border border-slate-300 dark:border-[#27354f] rounded-xl pl-12 pr-4 text-[14px] font-bold text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 transition-colors shadow-inner"
+                        />
+                      </div>
+                      <button 
+                        onClick={handleConsulta}
+                        disabled={consultaLoading || !consultaInput}
+                        className="h-[50px] px-6 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm tracking-wide transition-colors cursor-pointer shadow-lg shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                      >
+                        {consultaLoading ? <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div> : <Search className="w-4 h-4" />}
+                        Buscar
+                      </button>
+                    </div>
+
+                    {consultaError && (
+                      <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 text-red-600 dark:text-red-400 p-4 rounded-xl text-sm font-semibold flex items-center gap-3">
+                        <ShieldAlert className="w-5 h-5" />
+                        {consultaError}
+                      </div>
+                    )}
+
+                    {consultaResult && (
+                      <div className="bg-slate-50 dark:bg-[#0b0e14] border border-slate-200 dark:border-[#27354f] rounded-xl p-6 shadow-inner animate-fade-in-up relative">
+                        
+                        <button 
+                          onClick={handlePrintConsulta}
+                          className="absolute top-4 right-4 text-blue-600 bg-blue-100 hover:bg-blue-200 dark:text-blue-400 dark:bg-blue-500/10 dark:hover:bg-blue-500/20 px-3 py-1.5 rounded-lg flex items-center gap-2 text-xs font-bold transition-colors shadow-sm cursor-pointer border border-blue-200 dark:border-blue-500/20"
+                        >
+                          <Printer className="w-3.5 h-3.5" /> Imprimir
+                        </button>
+
+                        {consultaType === 'CEP' && (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-y-5 gap-x-4 mt-2">
+                            <div>
+                              <p className="text-[10px] uppercase font-bold text-slate-400 mb-0.5">CEP</p>
+                              <p className="text-sm font-black text-slate-800 dark:text-slate-200">{consultaResult.cep}</p>
+                            </div>
+                            <div>
+                              <p className="text-[10px] uppercase font-bold text-slate-400 mb-0.5">Estado / Cidade</p>
+                              <p className="text-sm font-black text-slate-800 dark:text-slate-200">{consultaResult.state} — {consultaResult.city}</p>
+                            </div>
+                            <div>
+                              <p className="text-[10px] uppercase font-bold text-slate-400 mb-0.5">Bairro</p>
+                              <p className="text-sm font-black text-slate-800 dark:text-slate-200">{consultaResult.neighborhood || '-'}</p>
+                            </div>
+                            <div>
+                              <p className="text-[10px] uppercase font-bold text-slate-400 mb-0.5">Logradouro / Rua</p>
+                              <p className="text-sm font-black text-slate-800 dark:text-slate-200">{consultaResult.street || '-'}</p>
+                            </div>
+                          </div>
+                        )}
+
+                        {consultaType === 'CNPJ' && (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-y-5 gap-x-4 mt-2">
+                            <div className="col-span-1 md:col-span-2 pr-20">
+                              <p className="text-[10px] uppercase font-bold text-slate-400 mb-0.5">Razão Social</p>
+                              <p className="text-[15px] font-black text-slate-800 dark:text-slate-200 uppercase">{consultaResult.razao_social}</p>
+                            </div>
+                            <div>
+                              <p className="text-[10px] uppercase font-bold text-slate-400 mb-0.5">Nome Fantasia</p>
+                              <p className="text-sm font-bold text-slate-700 dark:text-slate-300 uppercase">{consultaResult.nome_fantasia || '-'}</p>
+                            </div>
+                            <div>
+                              <p className="text-[10px] uppercase font-bold text-slate-400 mb-0.5">CNPJ</p>
+                              <p className="text-sm font-black text-slate-800 dark:text-slate-200">{consultaResult.cnpj}</p>
+                            </div>
+                            <div>
+                              <p className="text-[10px] uppercase font-bold text-slate-400 mb-0.5">Situação Cadastral</p>
+                              <span className={`mt-0.5 inline-block px-2.5 py-1 rounded text-[10px] font-black uppercase tracking-wider border ${consultaResult.descricao_situacao_cadastral === 'ATIVA' ? 'bg-emerald-100 text-emerald-700 border-emerald-300 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/30' : 'bg-red-100 text-red-700 border-red-300 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/30'}`}>
+                                {consultaResult.descricao_situacao_cadastral}
+                              </span>
+                            </div>
+                            <div>
+                              <p className="text-[10px] uppercase font-bold text-slate-400 mb-0.5">Data Início Atividade</p>
+                              <p className="text-sm font-bold text-slate-700 dark:text-slate-300">{consultaResult.data_inicio_atividade || '-'}</p>
+                            </div>
+                            <div className="col-span-1 md:col-span-2">
+                              <p className="text-[10px] uppercase font-bold text-slate-400 mb-0.5">Atividade Principal (CNAE)</p>
+                              <p className="text-sm font-bold text-slate-700 dark:text-slate-300 uppercase">{consultaResult.cnae_fiscal_descricao || '-'}</p>
+                            </div>
+                            <div>
+                              <p className="text-[10px] uppercase font-bold text-slate-400 mb-0.5">Natureza Jurídica</p>
+                              <p className="text-sm font-bold text-slate-700 dark:text-slate-300">{consultaResult.natureza_juridica || '-'}</p>
+                            </div>
+                            <div>
+                              <p className="text-[10px] uppercase font-bold text-slate-400 mb-0.5">Capital Social</p>
+                              <p className="text-sm font-black text-emerald-600 dark:text-emerald-400">{formatPrice(consultaResult.capital_social || 0)}</p>
+                            </div>
+                            <div className="col-span-1 md:col-span-2">
+                              <p className="text-[10px] uppercase font-bold text-slate-400 mb-0.5">Quadro de Sócios e Administradores (QSA)</p>
+                              <div className="flex flex-wrap gap-2 mt-1">
+                                {consultaResult.qsa && consultaResult.qsa.length > 0 ? consultaResult.qsa.map((socio, idx) => (
+                                  <span key={idx} className="bg-white dark:bg-[#1e293b] border border-slate-200 dark:border-slate-700 px-2 py-1 rounded text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase">
+                                    {socio.nome_socio}
+                                  </span>
+                                )) : <p className="text-sm font-bold text-slate-500">Não informado</p>}
+                              </div>
+                            </div>
+                            <div>
+                              <p className="text-[10px] uppercase font-bold text-slate-400 mb-0.5">Telefone</p>
+                              <p className="text-sm font-bold text-slate-700 dark:text-slate-300">{consultaResult.ddd_telefone_1 || '-'}</p>
+                            </div>
+                            <div className="col-span-1 md:col-span-2">
+                              <p className="text-[10px] uppercase font-bold text-slate-400 mb-0.5">Endereço Completo</p>
+                              <p className="text-sm font-bold text-slate-700 dark:text-slate-300 uppercase">
+                                {consultaResult.logradouro}, {consultaResult.numero} {consultaResult.complemento ? `- ${consultaResult.complemento}` : ''} <br/>
+                                {consultaResult.bairro} — {consultaResult.municipio} / {consultaResult.uf} <br/>
+                                CEP: {consultaResult.cep}
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Seção Links Externos Conselhos */}
+                  <div className="bg-white dark:bg-[#121826] border border-slate-200 dark:border-[#1e293b] p-6 rounded-2xl shadow-xl flex flex-col gap-5">
+                    <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wide flex items-center gap-2">
+                      <ExternalLink className="w-4 h-4 text-emerald-500" />
+                      Portais Oficiais
+                    </h2>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Os conselhos de classe não permitem consulta direta via sistema. Clique abaixo para acessar a página oficial de busca de cada conselho.</p>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                      <a href="https://portal.cfm.org.br/busca-medicos/" target="_blank" rel="noopener noreferrer" className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-[#0b0e14] border border-slate-200 dark:border-[#27354f] hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors group">
+                        <span className="font-bold text-[13px] text-slate-700 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400">Consulta CRM</span>
+                        <ExternalLink className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-500" />
+                      </a>
+                      <a href="https://servicos.coren-sp.gov.br/consulta-de-profissionais/" target="_blank" rel="noopener noreferrer" className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-[#0b0e14] border border-slate-200 dark:border-[#27354f] hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors group">
+                        <span className="font-bold text-[13px] text-slate-700 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400">Consulta COREN</span>
+                        <ExternalLink className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-500" />
+                      </a>
+                      <a href="https://cna.oab.org.br/" target="_blank" rel="noopener noreferrer" className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-[#0b0e14] border border-slate-200 dark:border-[#27354f] hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors group">
+                        <span className="font-bold text-[13px] text-slate-700 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400">Consulta OAB</span>
+                        <ExternalLink className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-500" />
+                      </a>
+                    </div>
+                  </div>
+
                 </div>
               )}
 
