@@ -211,7 +211,7 @@ const GraficaRow = ({ product, formatPrice }) => {
                 {formatPrice(product.price)}
               </span>
               <button 
-                onClick={() => copyToClipboard(`📋 *Orçamento Yama Print*\n*Produto:* ${product.name}\n${product.description && product.description !== '-' ? `*Material:* ${product.description}\n` : ''}${product.quantity ? `*Qtd:* ${product.quantity}\n` : ''}${product.measure ? `*Medida:* ${product.measure}\n` : ''}*Prazo:* ${product.deadline || '-'}\n*Total:* ${formatPrice(product.price)}`)}
+                onClick={() => copyToClipboard(`📋 *Orçamento Yama Print*\n*Produto:* ${product.subCategory || product.name}\n*Modelo:* ${product.name}\n${product.description && product.description !== '-' ? `*Especificações:* ${product.description}\n` : ''}${product.quantity ? `*Qtd:* ${product.quantity}\n` : ''}${product.measure ? `*Medida:* ${product.measure}\n` : ''}*Prazo:* ${product.deadline || '-'}\n*Total:* ${formatPrice(product.price)}`)}
                 className="p-2.5 bg-blue-100 hover:bg-blue-200 dark:bg-blue-500/10 dark:hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 rounded-lg transition-colors cursor-pointer"
                 title="Copiar Orçamento"
               >
@@ -230,7 +230,7 @@ const GraficaRow = ({ product, formatPrice }) => {
               <div className="bg-gradient-to-r from-blue-500/10 to-transparent p-4 border-b border-slate-200/50 dark:border-[#1e293b]/50 flex items-center justify-between">
                 <div className="text-blue-700 dark:text-blue-400 font-black text-[13px] flex items-center gap-2 uppercase tracking-wide">
                   <Maximize className="w-4 h-4" />
-                  Calculadora
+                  Calculadora de Grandes Formatos
                 </div>
                 <div className="text-slate-500 dark:text-slate-400 text-[10px] font-semibold flex gap-3">
                   <span>Limites:</span>
@@ -317,7 +317,7 @@ const GraficaRow = ({ product, formatPrice }) => {
                     </div>
                     {calcRes.total > 0 && (
                       <button 
-                        onClick={() => copyToClipboard(`📋 *Orçamento Yama Print*\n*Produto:* ${product.name}\n${product.description && product.description !== '-' ? `*Material:* ${product.description}\n` : ''}*Medida:* ${calcRes.l}x${calcRes.a} cm\n*Área:* ${calcRes.area.toFixed(2)} m²\n*Qtd:* ${calcRes.q}\n*Prazo:* ${product.deadline || '-'}\n*Valor Total:* ${formatPrice(calcRes.total)}`)}
+                        onClick={() => copyToClipboard(`📋 *Orçamento Yama Print*\n*Produto:* ${product.name}\n${product.description && product.description !== '-' ? `*Material/Especificações:* ${product.description}\n` : ''}*Medida:* ${calcRes.l}x${calcRes.a} cm\n*Área:* ${calcRes.area.toFixed(2)} m²\n*Qtd:* ${calcRes.q}\n*Prazo:* ${product.deadline || '-'}\n*Valor Total:* ${formatPrice(calcRes.total)}`)}
                         className="absolute -bottom-3 w-[80%] py-1.5 bg-white text-emerald-600 dark:bg-[#0b0e14] dark:text-emerald-400 font-black text-[10px] uppercase rounded-full shadow-lg flex items-center justify-center gap-1.5 transition-transform hover:scale-105 cursor-pointer border border-emerald-200 dark:border-emerald-500/30"
                       >
                         <Copy className="w-3.5 h-3.5" /> Copiar Orçamento
@@ -955,6 +955,7 @@ export default function App() {
       if (!grouped[baseKey]) {
         grouped[baseKey] = {
           id: item.id,
+          subCategory: item.subCategory, // Mantém a subcategoria para o copy
           name: item.name,
           quantity: item.quantity,
           measure: item.measure,
@@ -1484,7 +1485,7 @@ export default function App() {
             
             <div className="my-3 border-t border-slate-200 dark:border-[#1e293b]"></div>
 
-            <SidebarButton icon={<Search className="w-5 h-5" />} id="CONSULTAS" label="Consulta CNPJ/CEP"/>
+            <SidebarButton icon={<Search className="w-5 h-5" />} id="CONSULTAS" label="Consultas Rápidas"/>
             <SidebarButton icon={<Package className="w-5 h-5" />} id="FORNECEDORES" label="Fornecedores"/>
             <SidebarButton icon={<Clock className="w-5 h-5" />} id="CONTROLE_HORAS" label="Controle de Horas"/>
             <SidebarButton icon={<CalendarDays className="w-5 h-5" />} id="ESCALA_FOLGAS" label="Escala de Folgas"/>
@@ -1879,7 +1880,7 @@ export default function App() {
                                         {formatPrice(item.priceFrente)}
                                       </span>
                                       <button 
-                                        onClick={() => copyToClipboard(`📋 *Orçamento Yama Print*\n*Produto:* ${item.name} (Apenas Frente)\n${item.description && item.description !== '-' ? `*Material/Especificações:* ${item.description}\n` : ''}${item.quantity ? `*Qtd:* ${item.quantity}\n` : ''}${item.measure ? `*Medida:* ${item.measure}\n` : ''}*Prazo:* ${item.deadline || '-'}\n*Total:* ${formatPrice(item.priceFrente)}`)}
+                                        onClick={() => copyToClipboard(`📋 *Orçamento Yama Print*\n*Produto:* ${item.subCategory}\n*Modelo:* ${item.name} (Apenas Frente)\n${item.description && item.description !== '-' ? `*Especificações:* ${item.description}\n` : ''}${item.quantity ? `*Qtd:* ${item.quantity}\n` : ''}${item.measure ? `*Medida:* ${item.measure}\n` : ''}*Prazo:* ${item.deadline || '-'}\n*Total:* ${formatPrice(item.priceFrente)}`)}
                                         className="p-2.5 bg-blue-100 hover:bg-blue-200 dark:bg-blue-500/10 dark:hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 rounded-lg transition-colors cursor-pointer"
                                         title="Copiar Orçamento"
                                       >
@@ -1895,7 +1896,7 @@ export default function App() {
                                         {formatPrice(item.priceVerso)}
                                       </span>
                                       <button 
-                                        onClick={() => copyToClipboard(`📋 *Orçamento Yama Print*\n*Produto:* ${item.name} (Frente e Verso)\n${item.description && item.description !== '-' ? `*Material/Especificações:* ${item.description}\n` : ''}${item.quantity ? `*Qtd:* ${item.quantity}\n` : ''}${item.measure ? `*Medida:* ${item.measure}\n` : ''}*Prazo:* ${item.deadline || '-'}\n*Total:* ${formatPrice(item.priceVerso)}`)}
+                                        onClick={() => copyToClipboard(`📋 *Orçamento Yama Print*\n*Produto:* ${item.subCategory}\n*Modelo:* ${item.name} (Frente e Verso)\n${item.description && item.description !== '-' ? `*Especificações:* ${item.description}\n` : ''}${item.quantity ? `*Qtd:* ${item.quantity}\n` : ''}${item.measure ? `*Medida:* ${item.measure}\n` : ''}*Prazo:* ${item.deadline || '-'}\n*Total:* ${formatPrice(item.priceVerso)}`)}
                                         className="p-2.5 bg-blue-100 hover:bg-blue-200 dark:bg-blue-500/10 dark:hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 rounded-lg transition-colors cursor-pointer"
                                         title="Copiar Orçamento"
                                       >
@@ -1920,7 +1921,7 @@ export default function App() {
                                         <div className="flex items-center justify-end gap-2">
                                           <span className="text-emerald-600 dark:text-emerald-400 font-black text-[17px] block bg-emerald-50 dark:bg-emerald-500/10 px-2 py-2 rounded-lg ml-auto w-[120px] text-center border border-emerald-200 dark:border-emerald-500/40 tracking-wide whitespace-nowrap">{formatPrice(product.price)}</span>
                                           <button 
-                                            onClick={() => copyToClipboard(`📋 *Orçamento Yama Print*\n*Produto:* ${product.name}\n${product.description && product.description !== '-' ? `*Especificações:* ${product.description}\n` : ''}*Total:* ${formatPrice(product.price)}`)}
+                                            onClick={() => copyToClipboard(`📋 *Orçamento Yama Print*\n*Produto:* ${product.subCategory || 'Carimbo Madeira'}\n*Modelo:* ${product.name}\n${product.description && product.description !== '-' ? `*Especificações:* ${product.description}\n` : ''}*Total:* ${formatPrice(product.price)}`)}
                                             className="p-2.5 bg-blue-100 hover:bg-blue-200 dark:bg-blue-500/10 dark:hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 rounded-lg transition-colors cursor-pointer"
                                             title="Copiar Orçamento"
                                           >
@@ -1950,7 +1951,7 @@ export default function App() {
                                         <div className="flex items-center justify-end gap-2">
                                           <span className="text-emerald-600 dark:text-emerald-400 font-black text-[17px] block bg-emerald-50 dark:bg-emerald-500/10 px-2 py-2 rounded-lg ml-auto w-[120px] text-center border border-emerald-200 dark:border-emerald-500/40 tracking-wide whitespace-nowrap">{formatPrice(product.price)}</span>
                                           <button 
-                                            onClick={() => copyToClipboard(`📋 *Orçamento Yama Print*\n*Produto:* ${product.name}\n${product.description && product.description !== '-' ? `*Especificações:* ${product.description}\n` : ''}${product.measure ? `*Medida:* ${product.measure}\n` : ''}*Carimbo Completo:* ${formatPrice(product.price)}`)}
+                                            onClick={() => copyToClipboard(`📋 *Orçamento Yama Print*\n*Produto:* ${product.subCategory || 'Carimbo Automático'}\n*Modelo:* ${product.name}\n${product.description && product.description !== '-' ? `*Especificações:* ${product.description}\n` : ''}${product.measure ? `*Medida:* ${product.measure}\n` : ''}*Carimbo Completo:* ${formatPrice(product.price)}`)}
                                             className="p-2.5 bg-blue-100 hover:bg-blue-200 dark:bg-blue-500/10 dark:hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 rounded-lg transition-colors cursor-pointer"
                                             title="Copiar Orçamento"
                                           >
@@ -2209,7 +2210,7 @@ export default function App() {
                   <div className="bg-white dark:bg-[#121826] border border-slate-200 dark:border-[#1e293b] p-6 rounded-2xl shadow-xl flex flex-col gap-6">
                     <h2 className="text-lg font-bold text-slate-900 dark:text-white uppercase tracking-wide flex items-center gap-2">
                       <Search className="w-5 h-5 text-blue-500" />
-                      Consultas Rápidas
+                      Consultas Rápidas (Brasil API)
                     </h2>
 
                     <div className="flex bg-slate-100 dark:bg-[#0b0e14] p-1.5 rounded-xl border border-slate-200 dark:border-[#1e293b]">
@@ -2349,7 +2350,7 @@ export default function App() {
                   <div className="bg-white dark:bg-[#121826] border border-slate-200 dark:border-[#1e293b] p-6 rounded-2xl shadow-xl flex flex-col gap-5">
                     <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wide flex items-center gap-2">
                       <ExternalLink className="w-4 h-4 text-emerald-500" />
-                      Portais Oficiais
+                      Portais Oficiais (Sem API Pública)
                     </h2>
                     <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Os conselhos de classe não permitem consulta direta via sistema. Clique abaixo para acessar a página oficial de busca de cada conselho.</p>
                     
