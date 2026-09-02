@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
+import { getFirestore, enableIndexedDbPersistence } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDcSUvG_WU1iYl4JvbUIju3ibZMQVGou9U",
@@ -12,3 +12,11 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
+
+enableIndexedDbPersistence(db).catch((err) => {
+  if (err.code == 'failed-precondition') {
+    console.warn('Múltiplas instâncias abertas. Feche as outras para o offline funcionar.');
+  } else if (err.code == 'unimplemented') {
+    console.warn('O ambiente atual não suporta persistência offline.');
+  }
+});

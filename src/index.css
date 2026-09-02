@@ -1,3 +1,72 @@
 @import "tailwindcss";
 
 @variant dark (&:where(.dark, .dark *));
+
+/* Oculta o título de impressão na tela normal do app */
+.print-only-title {
+  display: none;
+}
+
+@media print {
+  aside, 
+  button, 
+  nav,
+  .fixed,
+  .sticky,
+  .no-print {
+    display: none !important;
+  }
+
+  main {
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+    color: black !important;
+  }
+
+  body {
+    background: white !important;
+    color: black !important;
+  }
+
+  .print-only-title {
+    display: block !important;
+    font-size: 16px !important;
+    font-weight: 900 !important;
+    text-transform: uppercase !important;
+    margin-bottom: 15px !important;
+    padding-bottom: 8px !important;
+    border-bottom: 2px solid #000 !important;
+    color: #000 !important;
+  }
+
+  /* Estilo com cara de planilha profissional para impressão */
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    margin-top: 10px !important;
+  }
+
+  th {
+    background-color: #f1f5f9 !important; /* Fundo cinza bem claro no cabeçalho da tabela */
+    color: #000 !important;
+    font-weight: 800 !important;
+    font-size: 11px !important;
+    text-transform: uppercase !important;
+    border-bottom: 2px solid #000 !important;
+    border-top: 1px solid #000 !important;
+    padding: 8px 10px !important;
+  }
+
+  td {
+    border-bottom: 1px solid #cbd5e1 !important; /* Linhas horizontais finas estilo planilha */
+    padding: 8px 10px !important;
+    font-size: 12px !important;
+    color: #1e293b !important;
+  }
+
+  tr {
+    page-break-inside: avoid !important;
+  }
+}

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { collection, getDocs, query, orderBy, doc, setDoc, getDoc } from 'firebase/firestore';
 import { db } from './firebase';
+import { open } from '@tauri-apps/plugin-shell';
 import adsSvg from './assets/logos/ads.svg';
 import crbSvg from './assets/logos/crb.svg';
 import prtSvg from './assets/logos/prt.svg';
@@ -70,6 +71,16 @@ const copyToClipboard = async (text) => {
   } catch (err) {
     console.error('Erro ao copiar:', err);
     alert('Erro ao copiar o texto.');
+  }
+};
+
+const handleExternalLink = async (url, e) => {
+  if (e) e.preventDefault();
+  try {
+    await open(url);
+  } catch (err) {
+    console.warn('Tauri shell open failed, falling back to window.open', err);
+    window.open(url, '_blank', 'noopener,noreferrer');
   }
 };
 
@@ -643,76 +654,7 @@ export default function App() {
 
   const handlePrintConsulta = () => {
     if (!consultaResult) return;
-
-    let title = consultaType === 'CEP' ? 'Comprovante de Consulta - CEP' : 'Comprovante de Consulta - CNPJ';
-    let content = '';
-
-    if (consultaType === 'CEP') {
-      content = `
-        <div class="header">CONSULTA DE CEP: ${consultaResult.cep}</div>
-        <table>
-          <tr><th>Estado</th><td>${consultaResult.state}</td></tr>
-          <tr><th>Cidade</th><td>${consultaResult.city}</td></tr>
-          <tr><th>Bairro</th><td>${consultaResult.neighborhood || '-'}</td></tr>
-          <tr><th>Logradouro</th><td>${consultaResult.street || '-'}</td></tr>
-        </table>
-      `;
-    } else {
-      const socios = consultaResult.qsa && consultaResult.qsa.length > 0 
-        ? consultaResult.qsa.map(s => s.nome_socio).join(', ') 
-        : 'Não informado';
-        
-      content = `
-        <div class="header">CONSULTA DE CNPJ: ${consultaResult.cnpj}</div>
-        <table>
-          <tr><th>Razão Social</th><td>${consultaResult.razao_social}</td></tr>
-          <tr><th>Nome Fantasia</th><td>${consultaResult.nome_fantasia || '-'}</td></tr>
-          <tr><th>Situação Cadastral</th><td>${consultaResult.descricao_situacao_cadastral}</td></tr>
-          <tr><th>Natureza Jurídica</th><td>${consultaResult.natureza_juridica || '-'}</td></tr>
-          <tr><th>Capital Social</th><td>${formatPrice(consultaResult.capital_social || 0)}</td></tr>
-          <tr><th>Atividade Principal</th><td>${consultaResult.cnae_fiscal_descricao}</td></tr>
-          <tr><th>Sócios / Adm</th><td>${socios}</td></tr>
-          <tr><th>Telefone</th><td>${consultaResult.ddd_telefone_1 || '-'}</td></tr>
-          <tr><th>Endereço</th><td>${consultaResult.logradouro}, ${consultaResult.numero} - ${consultaResult.bairro}, ${consultaResult.municipio} - ${consultaResult.uf} (${consultaResult.cep})</td></tr>
-        </table>
-      `;
-    }
-
-    const printWindow = window.open('', '_blank');
-    const htmlContent = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>${title}</title>
-          <style>
-            body { font-family: Arial, sans-serif; padding: 30px; color: #000; background: #fff; line-height: 1.5; }
-            .logo { font-size: 20px; font-weight: bold; margin-bottom: 20px; border-bottom: 2px solid #000; padding-bottom: 10px; }
-            .header { font-size: 16px; font-weight: bold; text-transform: uppercase; margin-bottom: 20px; background: #f2f2f2; padding: 10px; }
-            table { width: 100%; border-collapse: collapse; font-size: 13px; text-transform: uppercase; }
-            th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
-            th { background-color: #f9f9f9; width: 30%; color: #555; }
-            td { font-weight: bold; }
-            @media print {
-              @page { margin: 1cm; }
-              body { -webkit-print-color-adjust: exact; }
-            }
-          </style>
-        </head>
-        <body>
-          <div class="logo">YAMA PRINT - RELATÓRIO DE CONSULTA</div>
-          ${content}
-          <div style="margin-top: 30px; font-size: 11px; color: #666; text-align: center;">
-            Documento gerado em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}
-          </div>
-          <script>
-            window.onload = function() { setTimeout(function() { window.print(); window.close(); }, 250); }
-          </script>
-        </body>
-      </html>
-    `;
-    printWindow.document.open();
-    printWindow.document.write(htmlContent);
-    printWindow.document.close();
+    window.print();
   };
 
   const [loading, setLoading] = useState(true);
@@ -734,57 +676,7 @@ export default function App() {
   };
 
   const handlePrint = (type) => {
-    let title = '';
-    let headers = '';
-    let rows = '';
-
-    if (type === 'horas') {
-      title = 'Banco de Horas - Yama Print';
-      headers = '<tr><th style="width:20%">Loja</th><th style="width:60%">Funcionário</th><th style="text-align:right; width:20%">Saldo de Horas</th></tr>';
-      rows = hoursData.length > 0 
-        ? hoursData.map(row => `<tr><td>${row.loja || '-'}</td><td>${row.funcionario}</td><td style="text-align:right;">${row.horas || '0:00'}</td></tr>`).join('')
-        : '<tr><td colspan="3" style="text-align:center;">Nenhum dado encontrado</td></tr>';
-    } else if (type === 'folgas') {
-      title = 'Escala de Folgas - Yama Print';
-      headers = '<tr><th>Mês</th><th style="text-align:center;">Data</th><th>Mogi</th><th>Suzano</th></tr>';
-      rows = futureFolgas.length > 0
-        ? futureFolgas.map(row => `<tr><td>${row.mes}</td><td style="text-align:center;">${row.data}</td><td>${row.mogi}</td><td>${row.suzano}</td></tr>`).join('')
-        : '<tr><td colspan="4" style="text-align:center;">Nenhuma folga futura programada</td></tr>';
-    }
-
-    const printWindow = window.open('', '_blank');
-    const htmlContent = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>${title}</title>
-          <style>
-            body { font-family: Arial, sans-serif; padding: 20px; color: #000; background: #fff; }
-            h2 { text-align: center; text-transform: uppercase; font-size: 18px; margin-bottom: 20px; }
-            table { width: 100%; border-collapse: collapse; font-size: 13px; text-transform: uppercase; }
-            th, td { border: 1px solid #000; padding: 10px; }
-            th { background-color: #f2f2f2; font-weight: bold; text-align: left; }
-            @media print {
-              @page { margin: 1cm; }
-              body { -webkit-print-color-adjust: exact; }
-            }
-          </style>
-        </head>
-        <body>
-          <h2>${title}</h2>
-          <table>
-            <thead>${headers}</thead>
-            <tbody>${rows}</tbody>
-          </table>
-          <script>
-            window.onload = function() { setTimeout(function() { window.print(); window.close(); }, 250); }
-          </script>
-        </body>
-      </html>
-    `;
-    printWindow.document.open();
-    printWindow.document.write(htmlContent);
-    printWindow.document.close();
+    window.print();
   };
 
   const fetchData = async () => {
@@ -955,7 +847,7 @@ export default function App() {
       if (!grouped[baseKey]) {
         grouped[baseKey] = {
           id: item.id,
-          subCategory: item.subCategory, // Mantém a subcategoria para o copy
+          subCategory: item.subCategory,
           name: item.name,
           quantity: item.quantity,
           measure: item.measure,
@@ -2347,26 +2239,33 @@ export default function App() {
                   </div>
 
                   {/* Seção Links Externos Conselhos */}
-                  <div className="bg-white dark:bg-[#121826] border border-slate-200 dark:border-[#1e293b] p-6 rounded-2xl shadow-xl flex flex-col gap-5">
-                    <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wide flex items-center gap-2">
+                    <div className="bg-white dark:bg-[#121826] border border-slate-200 dark:border-[#1e293b] p-6 rounded-2xl shadow-xl flex flex-col gap-5 no-print">                    <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wide flex items-center gap-2">
                       <ExternalLink className="w-4 h-4 text-emerald-500" />
                       Portais Oficiais
                     </h2>
                     <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Os conselhos de classe não permitem consulta direta via sistema. Clique abaixo para acessar a página oficial de busca de cada conselho.</p>
                     
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                      <a href="https://portal.cfm.org.br/busca-medicos/" target="_blank" rel="noopener noreferrer" className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-[#0b0e14] border border-slate-200 dark:border-[#27354f] hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors group">
+                      <button onClick={(e) => handleExternalLink("https://portal.cfm.org.br/busca-medicos/", e)} className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-[#0b0e14] border border-slate-200 dark:border-[#27354f] hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors group cursor-pointer text-left">
                         <span className="font-bold text-[13px] text-slate-700 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400">Consulta CRM</span>
                         <ExternalLink className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-500" />
-                      </a>
-                      <a href="https://servicos.coren-sp.gov.br/consulta-de-profissionais/" target="_blank" rel="noopener noreferrer" className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-[#0b0e14] border border-slate-200 dark:border-[#27354f] hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors group">
+                      </button>
+                      <button onClick={(e) => handleExternalLink("https://servicos.coren-sp.gov.br/consulta-de-profissionais/", e)} className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-[#0b0e14] border border-slate-200 dark:border-[#27354f] hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors group cursor-pointer text-left">
                         <span className="font-bold text-[13px] text-slate-700 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400">Consulta COREN</span>
                         <ExternalLink className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-500" />
-                      </a>
-                      <a href="https://cna.oab.org.br/" target="_blank" rel="noopener noreferrer" className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-[#0b0e14] border border-slate-200 dark:border-[#27354f] hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors group">
+                      </button>
+                      <button onClick={(e) => handleExternalLink("https://cna.oab.org.br/", e)} className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-[#0b0e14] border border-slate-200 dark:border-[#27354f] hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors group cursor-pointer text-left">
                         <span className="font-bold text-[13px] text-slate-700 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400">Consulta OAB</span>
                         <ExternalLink className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-500" />
-                      </a>
+                      </button>
+                      <button onClick={(e) => handleExternalLink("https://cress-sp.implanta.net.br/servicosonline/Publico/ConsultaInscritos/", e)} className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-[#0b0e14] border border-slate-200 dark:border-[#27354f] hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors group cursor-pointer text-left">
+                        <span className="font-bold text-[13px] text-slate-700 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400">Consulta CRESS</span>
+                        <ExternalLink className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-500" />
+                      </button>
+                      <button onClick={(e) => handleExternalLink("https://portal.crfsp.org.br/consulta-de-inscritos.html", e)} className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-[#0b0e14] border border-slate-200 dark:border-[#27354f] hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors group cursor-pointer text-left">
+                        <span className="font-bold text-[13px] text-slate-700 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400">Consulta CRF</span>
+                        <ExternalLink className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-500" />
+                      </button>
                     </div>
                   </div>
 
@@ -2395,11 +2294,9 @@ export default function App() {
                         { title: 'CorelDraw', icon: PenTool, url: 'https://download1530.mediafire.com/...' },
                         { title: 'Compressor PDF', icon: FileArchive, url: 'https://smallpdf.com/lp/compress-pdf' }
                       ].map((link, idx) => (
-                      <a 
+                      <div 
                         key={idx} 
-                        href={link.url} 
-                        target="_blank" 
-                        rel="noopener noreferrer" 
+                        onClick={(e) => handleExternalLink(link.url, e)} 
                         className="relative group rounded-xl p-[2px] cursor-pointer transition-all duration-300 hover:scale-[1.02]"
                       >
                         <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-emerald-400 to-blue-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10"></div>
@@ -2413,7 +2310,7 @@ export default function App() {
                           </div>
                           <svg className="w-4 h-4 text-slate-400 dark:text-slate-600 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
                         </div>
-                      </a>
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -2497,6 +2394,7 @@ export default function App() {
               href="https://github.com/mrenanpx" 
               target="_blank" 
               rel="noopener noreferrer" 
+              onClick={(e) => handleExternalLink("https://github.com/mrenanpx", e)}
               className="flex items-center gap-2 py-1.5 px-4 text-xs font-medium text-slate-500 hover:text-slate-800 dark:hover:text-slate-300 active:bg-emerald-100 dark:active:bg-emerald-500/10 active:text-emerald-700 dark:active:text-emerald-400 rounded-lg transition-all cursor-pointer group"
             >
               <svg className="w-4 h-4 fill-current opacity-60 group-hover:opacity-100 transition-opacity" viewBox="0 0 24 24">
