@@ -505,6 +505,11 @@ export default function App() {
   const [consultaLoading, setConsultaLoading] = useState(false);
   const [consultaError, setConsultaError] = useState('');
 
+  // Estados interativos para as Calculadoras Rápidas da Tela Inicial
+  const [calcCopiaQtd, setCalcCopiaQtd] = useState(0);
+  const [calcPbQtd, setCalcPbQtd] = useState(0);
+  const [calcColorQtd, setCalcColorQtd] = useState(0);
+
   useEffect(() => {
     localStorage.setItem('theme', theme);
     if (theme === 'dark') {
@@ -1571,34 +1576,181 @@ export default function App() {
                         </div>
                       )
                     ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 p-6">
-                        {[
-                          { id: 'GRÁFICA', title: 'Gráfica', desc: 'Impressos em geral', icon: adsSvg },
-                          { id: 'CARIMBO', title: 'Carimbos', desc: 'Automáticos e Madeira', icon: crbSvg },
-                          { id: 'SERVIÇOS', title: 'Serviços', desc: 'Cópias e Encadernação', icon: prtSvg }
-                        ].map(card => (
-                          <div 
-                            key={card.id} 
-                            onClick={() => { triggerAnimation(); setActiveTab(card.id); setIsExtrasOpen(false); }} 
-                            className="relative w-full h-[260px] cursor-pointer group rounded-2xl p-[2px] transition-all duration-500 hover:scale-[1.02]"
-                          >
-                            <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-emerald-400 to-blue-500 opacity-0 group-hover:opacity-75 blur-md transition-all duration-500 -z-10"></div>
-                            <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-emerald-500 to-cyan-400 opacity-0 group-hover:opacity-75 transition-all duration-500 -z-10"></div>
+                      <div className="flex flex-col gap-8">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 p-6">
+                          {[
+                            { id: 'GRÁFICA', title: 'Gráfica', desc: 'Impressos em geral', icon: adsSvg },
+                            { id: 'CARIMBO', title: 'Carimbos', desc: 'Automáticos e Madeira', icon: crbSvg },
+                            { id: 'SERVIÇOS', title: 'Serviços', desc: 'Cópias e Encadernação', icon: prtSvg }
+                          ].map(card => (
+                            <div 
+                              key={card.id} 
+                              onClick={() => { triggerAnimation(); setActiveTab(card.id); setIsExtrasOpen(false); }} 
+                              className="relative w-full h-[260px] cursor-pointer group rounded-2xl p-[2px] transition-all duration-500 hover:scale-[1.02]"
+                            >
+                              <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-emerald-400 to-blue-500 opacity-0 group-hover:opacity-75 blur-md transition-all duration-500 -z-10"></div>
+                              <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-emerald-500 to-cyan-400 opacity-0 group-hover:opacity-75 transition-all duration-500 -z-10"></div>
 
-                            <div className="w-full h-full bg-white dark:bg-[#121826] group-hover:bg-slate-50 dark:group-hover:bg-[#0b0e14] border border-slate-200 dark:border-[#1e293b] rounded-2xl flex flex-col justify-center items-center text-center p-6 transition-colors duration-300 shadow-2xl relative z-10">
-                              <div className="w-20 h-20 mb-4 flex items-center justify-center transition-transform duration-500 group-hover:scale-110">
-                                <img 
-                                  src={card.icon} 
-                                  alt={card.title} 
-                                  className={`w-20 h-20 object-contain filter transition-all duration-500 group-hover:drop-shadow-[0_0_10px_rgba(52,211,153,0.6)] ${theme === 'dark' ? 'brightness-0 invert' : ''}`} 
-                                />
+                              <div className="w-full h-full bg-white dark:bg-[#121826] group-hover:bg-slate-50 dark:group-hover:bg-[#0b0e14] border border-slate-200 dark:border-[#1e293b] rounded-2xl flex flex-col justify-center items-center text-center p-6 transition-colors duration-300 shadow-2xl relative z-10">
+                                <div className="w-20 h-20 mb-4 flex items-center justify-center transition-transform duration-500 group-hover:scale-110">
+                                  <img 
+                                    src={card.icon} 
+                                    alt={card.title} 
+                                    className={`w-20 h-20 object-contain filter transition-all duration-500 group-hover:drop-shadow-[0_0_10px_rgba(52,211,153,0.6)] ${theme === 'dark' ? 'brightness-0 invert' : ''}`} 
+                                  />
+                                </div>
+
+                                <h3 className="text-[22px] font-black text-slate-900 dark:text-white mb-1 tracking-tight transition-transform duration-300 group-hover:translate-y-[-2px]">{card.title}</h3>
+                                <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">{card.desc}</p>
                               </div>
+                            </div>
+                          ))}
+                        </div>
 
-                              <h3 className="text-[22px] font-black text-slate-900 dark:text-white mb-1 tracking-tight transition-transform duration-300 group-hover:translate-y-[-2px]">{card.title}</h3>
-                              <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">{card.desc}</p>
+                        {/* Calculadoras Rápidas de Balcão limpas (sem tags de faixas) */}
+                        <div className="bg-white dark:bg-[#121826] border border-slate-200 dark:border-[#1e293b] p-6 rounded-2xl shadow-xl flex flex-col gap-6 mx-6">
+                          <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#1e293b] pb-4">
+                            <div>
+                              <h2 className="text-base font-bold text-slate-900 dark:text-white uppercase tracking-wide">
+                                Calculadoras Rápidas de Balcão
+                              </h2>
+                              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                                Orçamento instantâneo para atendimento rápido ao cliente
+                              </p>
                             </div>
                           </div>
-                        ))}
+
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                            {/* Calculadora 1: Cópia */}
+                            {(() => {
+                              const p = calcCopiaQtd <= 10 ? 0.50 : calcCopiaQtd <= 50 ? 0.45 : calcCopiaQtd <= 199 ? 0.40 : 0.35;
+                              const total = calcCopiaQtd * p;
+                              const tiers = [10, 50, 199];
+                              const nextT = tiers.find(t => calcCopiaQtd <= t);
+                              const faltam = nextT ? (nextT + 1) - calcCopiaQtd : null;
+
+                              return (
+                                <div className="bg-slate-50 dark:bg-[#1a2234] border border-slate-200 dark:border-[#26334d] p-4 rounded-xl flex flex-col justify-between gap-3">
+                                  <div className="flex flex-col gap-2">
+                                    <div className="flex justify-between items-center">
+                                      <span className="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">
+                                        Cópia Simples
+                                      </span>
+                                      {calcCopiaQtd > 0 && <span className="text-[10px] bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded font-bold">{formatPrice(p)}/un</span>}
+                                    </div>
+                                    <div className="flex items-center gap-2 mt-1">
+                                      <input 
+                                        type="number" 
+                                        placeholder="Qtd de páginas" 
+                                        value={calcCopiaQtd || ''}
+                                        onChange={(e) => setCalcCopiaQtd(Math.max(0, Number(e.target.value)))}
+                                        className="w-full bg-white dark:bg-[#121826] border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-white focus:outline-none focus:border-blue-500"
+                                      />
+                                    </div>
+                                    <div className="h-5">
+                                      {calcCopiaQtd > 0 && faltam && (
+                                        <div className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                                          <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                                          Faltam {faltam} unid para o valor baixar!
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <div className="flex justify-between items-center pt-2 border-t border-slate-200 dark:border-slate-700 text-xs">
+                                    <span className="text-slate-500 dark:text-slate-400">Total Estimado:</span>
+                                    <span className="font-bold text-sm text-slate-900 dark:text-white">{formatPrice(total)}</span>
+                                  </div>
+                                </div>
+                              );
+                            })()}
+
+                            {/* Calculadora 2: Impressão P&B */}
+                            {(() => {
+                              const p = calcPbQtd <= 10 ? 0.90 : calcPbQtd <= 20 ? 0.75 : calcPbQtd <= 30 ? 0.60 : calcPbQtd <= 80 ? 0.50 : calcPbQtd <= 199 ? 0.40 : 0.30;
+                              const total = calcPbQtd * p;
+                              const tiers = [10, 20, 30, 80, 199];
+                              const nextT = tiers.find(t => calcPbQtd <= t);
+                              const faltam = nextT ? (nextT + 1) - calcPbQtd : null;
+
+                              return (
+                                <div className="bg-slate-50 dark:bg-[#1a2234] border border-slate-200 dark:border-[#26334d] p-4 rounded-xl flex flex-col justify-between gap-3">
+                                  <div className="flex flex-col gap-2">
+                                    <div className="flex justify-between items-center">
+                                      <span className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                                        Impressão P&B
+                                      </span>
+                                      {calcPbQtd > 0 && <span className="text-[10px] bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded font-bold">{formatPrice(p)}/un</span>}
+                                    </div>
+                                    <div className="flex items-center gap-2 mt-1">
+                                      <input 
+                                        type="number" 
+                                        placeholder="Qtd de páginas" 
+                                        value={calcPbQtd || ''}
+                                        onChange={(e) => setCalcPbQtd(Math.max(0, Number(e.target.value)))}
+                                        className="w-full bg-white dark:bg-[#121826] border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-white focus:outline-none focus:border-emerald-500"
+                                      />
+                                    </div>
+                                    <div className="h-5">
+                                      {calcPbQtd > 0 && faltam && (
+                                        <div className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                                          <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                                          Faltam {faltam} unid para o valor baixar!
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <div className="flex justify-between items-center pt-2 border-t border-slate-200 dark:border-slate-700 text-xs">
+                                    <span className="text-slate-500 dark:text-slate-400">Total Estimado:</span>
+                                    <span className="font-bold text-sm text-slate-900 dark:text-white">{formatPrice(total)}</span>
+                                  </div>
+                                </div>
+                              );
+                            })()}
+
+                            {/* Calculadora 3: Impressão Colorida */}
+                            {(() => {
+                              const p = calcColorQtd <= 10 ? 1.70 : calcColorQtd <= 20 ? 1.50 : calcColorQtd <= 50 ? 1.40 : 1.30;
+                              const total = calcColorQtd * p;
+                              const tiers = [10, 20, 50];
+                              const nextT = tiers.find(t => calcColorQtd <= t);
+                              const faltam = nextT ? (nextT + 1) - calcColorQtd : null;
+
+                              return (
+                                <div className="bg-slate-50 dark:bg-[#1a2234] border border-slate-200 dark:border-[#26334d] p-4 rounded-xl flex flex-col justify-between gap-3">
+                                  <div className="flex flex-col gap-2">
+                                    <div className="flex justify-between items-center">
+                                      <span className="text-xs font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400">
+                                        Impressão Colorida
+                                      </span>
+                                      {calcColorQtd > 0 && <span className="text-[10px] bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 px-2 py-0.5 rounded font-bold">{formatPrice(p)}/un</span>}
+                                    </div>
+                                    <div className="flex items-center gap-2 mt-1">
+                                      <input 
+                                        type="number" 
+                                        placeholder="Qtd de páginas" 
+                                        value={calcColorQtd || ''}
+                                        onChange={(e) => setCalcColorQtd(Math.max(0, Number(e.target.value)))}
+                                        className="w-full bg-white dark:bg-[#121826] border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-white focus:outline-none focus:border-purple-500"
+                                      />
+                                    </div>
+                                    <div className="h-5">
+                                      {calcColorQtd > 0 && faltam && (
+                                        <div className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                                          <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                                          Faltam {faltam} unid para o valor baixar!
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <div className="flex justify-between items-center pt-2 border-t border-slate-200 dark:border-slate-700 text-xs">
+                                    <span className="text-slate-500 dark:text-slate-400">Total Estimado:</span>
+                                    <span className="font-bold text-sm text-slate-900 dark:text-white">{formatPrice(total)}</span>
+                                  </div>
+                                </div>
+                              );
+                            })()}
+                          </div>
+                        </div>
                       </div>
                     )}
                   </div>
