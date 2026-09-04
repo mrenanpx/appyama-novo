@@ -7,8 +7,10 @@ import { BYPASS_TYPE_SUBCATS } from '../../constants/products';
 const HomeView = ({ 
   products, theme, searchTerm, setSearchTerm, formatPrice,
   triggerAnimation, setActiveTab, setSelectedSubCategory, setSelectedProductType, setIsExtrasOpen,
-  calcCopiaQtd, setCalcCopiaQtd, calcPbQtd, setCalcPbQtd, calcColorQtd, setCalcColorQtd
+  calcCopiaQtd, setCalcCopiaQtd, calcPbQtd, setCalcPbQtd, calcColorQtd, setCalcColorQtd,
+  getFirstProductType
 }) => {
+
   const normSearchGlobal = normalizeStr(searchTerm);
   
   const globalMatchingSubCats = normSearchGlobal 
@@ -104,10 +106,15 @@ const HomeView = ({
                           const hasTypes = products.some(p => p.category?.toUpperCase().includes(parentCat) && p.subCategory === subCat && p.name?.trim() !== '');
                           if (['CARIMBO', 'SERVIÇOS'].includes(parentCat) || !hasTypes || isBypass) {
                             setSelectedProductType('TODOS');
+                          } else if (parentCat === 'GRÁFICA') {
+                            // Auto-seleciona o primeiro tipo para pular a tela intermediária
+                            const firstType = getFirstProductType ? getFirstProductType(subCat) : null;
+                            setSelectedProductType(firstType || 'TODOS');
                           } else {
                             setSelectedProductType(null);
                           }
                         }} 
+
                         className="relative w-full cursor-pointer group rounded-xl p-[2px] transition-all duration-500 hover:scale-[1.02]"
                       >
                         <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-emerald-400 to-blue-500 opacity-0 group-hover:opacity-75 blur-md transition-all duration-500 -z-10"></div>

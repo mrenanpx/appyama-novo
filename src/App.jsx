@@ -13,6 +13,8 @@ import HomeView from './components/views/HomeView';
 import ProductTable from './components/tables/ProductTable';
 import ServiceCalculator from './components/tables/ServiceCalculator';
 import AcabamentosExtras from './components/cards/AcabamentosExtras';
+import ProductTypePills from './components/cards/ProductTypePills';
+
 import {
   ChangelogView, SuppliersView, HoursControlView, FolgasView,
   ConsultasView, DownloadsView, UploadsView, AdminView
@@ -317,8 +319,35 @@ export default function App() {
 
   const getProductTypes = () => {
     if (!selectedSubCategory) return [];
-    return [...new Set(products.filter(item => item.category?.toUpperCase().includes(activeTab) && item.subCategory?.toUpperCase() === selectedSubCategory.toUpperCase()).map(item => item.name).filter(Boolean))];
+    // Preserva a ordem dos produtos (que já vem ordenado por "order" do Firebase)
+    const seen = new Set();
+    const types = [];
+    products.forEach(item => {
+      if (item.category?.toUpperCase().includes(activeTab) && 
+          item.subCategory?.toUpperCase() === selectedSubCategory.toUpperCase() && 
+          item.name?.trim() && 
+          !seen.has(item.name)) {
+        seen.add(item.name);
+        types.push(item.name);
+      }
+    });
+    return types;
   };
+
+  const getFirstProductType = (subCat) => {
+    if (!subCat) return null;
+    const seen = new Set();
+    for (const item of products) {
+      if (item.category?.toUpperCase().includes('GRÁFICA') && 
+          item.subCategory?.toUpperCase() === subCat.toUpperCase() && 
+          item.name?.trim() && 
+          !seen.has(item.name)) {
+        return item.name;
+      }
+    }
+    return null;
+  };
+
 
   const getFinalProducts = () => {
     const normSearch = normalizeStr(searchTerm);
@@ -726,7 +755,9 @@ export default function App() {
               handleGoHome={handleGoHome} triggerAnimation={triggerAnimation}
               setSelectedSubCategory={setSelectedSubCategory} setSelectedProductType={setSelectedProductType}
               setSearchTerm={setSearchTerm} setIsExtrasOpen={setIsExtrasOpen} searchTerm={searchTerm}
+              getFirstProductType={getFirstProductType}
             />
+
 
             {loading ? (
               <div className="flex justify-center items-center py-32">
@@ -745,8 +776,10 @@ export default function App() {
                     calcCopiaQtd={calcCopiaQtd} setCalcCopiaQtd={setCalcCopiaQtd}
                     calcPbQtd={calcPbQtd} setCalcPbQtd={setCalcPbQtd}
                     calcColorQtd={calcColorQtd} setCalcColorQtd={setCalcColorQtd}
+                    getFirstProductType={getFirstProductType}
                   />
                 )}
+
 
               {activeTab === 'CHANGELOG' && (
                 <ChangelogView appUpdateInfo={appUpdateInfo} handleExternalLink={handleExternalLink} />
@@ -766,10 +799,15 @@ export default function App() {
                         const hasTypes = products.some(p => p.category?.toUpperCase().includes(activeTab) && p.subCategory === subCat && p.name?.trim() !== '');
                         if (['CARIMBO', 'SERVIÇOS'].includes(activeTab) || !hasTypes || isBypass) {
                           setSelectedProductType('TODOS');
+                        } else if (activeTab === 'GRÁFICA') {
+                          // Auto-seleciona o primeiro tipo (por ordem) para pular a tela intermediária
+                          const firstType = getFirstProductType(subCat);
+                          setSelectedProductType(firstType || 'TODOS');
                         } else {
                           setSelectedProductType(null);
                         }
                       }} 
+
                       className="relative w-full cursor-pointer group rounded-xl p-[2px] transition-all duration-500 hover:scale-[1.02]"
                     >
                       <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-emerald-400 to-blue-500 opacity-0 group-hover:opacity-75 blur-md transition-all duration-500 -z-10"></div>
@@ -807,6 +845,16 @@ export default function App() {
               {((activeTab === 'GRÁFICA' && selectedSubCategory && selectedProductType) || (['CARIMBO', 'SERVIÇOS'].includes(activeTab) && selectedSubCategory)) && (
                 <div className="flex flex-col gap-6">
                   
+                  {activeTab === 'GRÁFICA' && getProductTypes().length > 0 && (
+                    <ProductTypePills 
+                      productTypes={getProductTypes()}
+                      selectedProductType={selectedProductType}
+                      onSelectType={(type) => { setSelectedProductType(type); setSearchTerm(''); setIsExtrasOpen(false); }}
+                      triggerAnimation={triggerAnimation}
+                    />
+                  )}
+
+
                   <AcabamentosExtras 
                     activeTab={activeTab} selectedSubCategory={selectedSubCategory}
                     selectedProductType={selectedProductType}
@@ -826,6 +874,7 @@ export default function App() {
                   />
                 </div>
               )}
+
 
               {activeTab === 'FORNECEDORES' && (
                 <SuppliersView getFinalSuppliers={getFinalSuppliers} />

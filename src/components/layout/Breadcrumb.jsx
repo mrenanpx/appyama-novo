@@ -5,8 +5,9 @@ import { normalizeStr } from '../../utils/helpers';
 const Breadcrumb = ({ 
   activeTab, selectedSubCategory, selectedProductType, products,
   handleGoHome, triggerAnimation, setSelectedSubCategory, setSelectedProductType, 
-  setSearchTerm, setIsExtrasOpen, searchTerm
+  setSearchTerm, setIsExtrasOpen, searchTerm, getFirstProductType
 }) => {
+
 
   return (
     <div className="sticky top-0 z-30 flex flex-col gap-2 bg-slate-200 dark:bg-[#0b0e14] py-2 transition-all">
@@ -32,12 +33,15 @@ const Breadcrumb = ({
                 const hasTypes = products.some(p => p.category?.toUpperCase().includes('GRÁFICA') && p.subCategory?.toUpperCase() === selectedSubCategory.toUpperCase() && p.name?.trim() !== '');
                 if(hasTypes && !isBypass){
                   triggerAnimation(); 
-                  setSelectedProductType(null); 
+                  // Auto-seleciona o primeiro tipo para pular a tela intermediária
+                  const firstType = getFirstProductType ? getFirstProductType(selectedSubCategory) : null;
+                  setSelectedProductType(firstType || 'TODOS'); 
                   setSearchTerm(''); 
                   setIsExtrasOpen(false);
                 }
               } 
             }} className={`uppercase tracking-wider transition-colors ${!selectedProductType || selectedProductType === 'TODOS' || ['CARIMBO', 'SERVIÇOS'].includes(activeTab) ? 'text-slate-800 dark:text-slate-200' : 'text-blue-600 dark:text-blue-500 hover:text-blue-700 dark:hover:text-blue-400 cursor-pointer'}`}>
+
               {selectedSubCategory}
             </button>
           </>
