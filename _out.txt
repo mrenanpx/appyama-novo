@@ -1,0 +1,78 @@
+==== CARTÃO DE VISITA ====
+o=1 id=G001 name=[FRENTE] pt=[] desc=[Couché Brilho 250g - 4x0 -  Brilho Frente - Refile] p=79
+o=2 id=G002 name=[FRENTE] pt=[] desc=[Couché Brilho 250g - 4x0 -  Brilho Frente - Refile] p=112
+o=3 id=G003 name=[FRENTE] pt=[] desc=[Couché Brilho 250g - 4x0 -  Brilho Frente - Refile] p=289
+o=4 id=G004 name=[FRENTE] pt=[] desc=[Couché Brilho 250g - 4x0 -  Brilho Frente - Refile] p=449
+o=5 id=G005 name=[FRENTE / VERSO] pt=[Brilho Frente] desc=[Couché Brilho 250g - 4x4 -  Brilho Frente - Refile] p=106
+o=6 id=G006 name=[FRENTE / VERSO] pt=[Brilho Frente] desc=[Couché Brilho 250g - 4x4 -  Brilho Frente - Refile] p=128
+o=7 id=G007 name=[FRENTE / VERSO] pt=[Brilho Frente] desc=[Couché Brilho 250g - 4x4 -  Brilho Frente - Refile] p=329
+o=8 id=G008 name=[FRENTE / VERSO] pt=[Brilho Frente] desc=[Couché Brilho 250g - 4x4 -  Brilho Frente - Refile] p=529
+o=9 id=G009 name=[FRENTE / VERSO] pt=[Brilho Total] desc=[Couché Brilho 250g - 4x4 -  Brilho Total - Refile] p=129
+o=10 id=G010 name=[FRENTE / VERSO] pt=[Brilho Total] desc=[Couché Brilho 250g - 4x4 -  Brilho Total - Refile] p=149
+o=11 id=G011 name=[FRENTE / VERSO] pt=[Brilho Total] desc=[Couché Brilho 250g - 4x4 -  Brilho Total - Refile] p=649
+o=12 id=G012 name=[VERNIZ LOCALIZADO] pt=[FRENTE] desc=[Couché 300g - 4x4 - Verniz Localizado Frente - Refile] p=139
+o=13 id=G013 name=[VERNIZ LOCALIZADO] pt=[FRENTE] desc=[Couché 300g - 4x4 - Verniz Localizado Frente - Refile] p=169
+o=14 id=G014 name=[VERNIZ LOCALIZADO] pt=[FRENTE] desc=[Couché 300g - 4x4 - Verniz Localizado Frente - Refile] p=659
+o=15 id=G015 name=[VERNIZ LOCALIZADO] pt=[FRENTE / VERSO] desc=[Couché 300g - 4x4 - Verniz Localizado Frente / Verso - Refile] p=169
+o=16 id=G016 name=[VERNIZ LOCALIZADO] pt=[FRENTE / VERSO] desc=[Couché 300g - 4x4 - Verniz Localizado Frente / Verso - Refile] p=219
+o=17 id=G017 name=[VERNIZ LOCALIZADO] pt=[FRENTE / VERSO] desc=[Couché 300g - 4x4 - Verniz Localizado Frente / Verso - Refile] p=949
+o=18 id=G018 name=[HOT STAMP] pt=[] desc=[Couché Fosco 300g - 4x4 - Laminação Soft Touch e Hot Stamping] p=162
+o=19 id=G019 name=[HOT STAMP] pt=[] desc=[Couché Fosco 300g - 4x4 - Laminação Soft Touch e Hot Stamping] p=364
+o=20 id=G020 name=[HOT STAMP] pt=[] desc=[Couché Fosco 300g - 4x4 - Laminação Soft Touch e Hot Stamping] p=576
+o=301 id=G331 name=[PVC] pt=[FRENTE] desc=[PVC/PS/PET Branco 0,3mm 410g] p=119
+o=302 id=G332 name=[PVC] pt=[FRENTE] desc=[PVC/PS/PET Branco 0,3mm 410g] p=139
+o=303 id=G333 name=[PVC] pt=[FRENTE] desc=[PVC/PS/PET Branco 0,3mm 410g] p=229
+o=304 id=G334 name=[PVC] pt=[FRENTE] desc=[PVC/PS/PET Branco 0,3mm 410g] p=390
+o=305 id=G335 name=[PVC] pt=[FRENTE / VERSO] desc=[PVC/PS/PET Branco 0,3mm 410g] p=139
+o=306 id=G336 name=[PVC] pt=[FRENTE / VERSO] desc=[PVC/PS/PET Branco 0,3mm 410g] p=179
+o=307 id=G337 name=[PVC] pt=[FRENTE / VERSO] desc=[PVC/PS/PET Branco 0,3mm 410g] p=329
+o=308 id=G338 name=[PVC] pt=[FRENTE / VERSO] desc=[PVC/PS/PET Branco 0,3mm 410g] p=579
+
+==== MARCA PÁGINA ====
+o=79 id=G109 name=[FRENTE] pt=[FRENTE] desc=[Couchê brilho 250g - refile] p=74
+o=80 id=G110 name=[FRENTE] pt=[FRENTE] desc=[Couchê brilho 250g - refile] p=89
+o=81 id=G111 name=[FRENTE] pt=[FRENTE] desc=[Couchê brilho 250g - refile] p=119
+o=82 id=G112 name=[FRENTE] pt=[FRENTE] desc=[Couchê brilho 250g - refile] p=189
+o=85 id=G411 name=[FRENTE / VERSO] pt=[FRENTE/VERSO] desc=[Couchê brilho 250g - refile] p=84
+o=86 id=G412 name=[FRENTE / VERSO] pt=[FRENTE/VERSO] desc=[Couchê brilho 250g - refile] p=109
+o=87 id=G413 name=[FRENTE / VERSO] pt=[FRENTE/VERSO] desc=[Couchê brilho 250g - refile] p=129
+o=88 id=G414 name=[FRENTE / VERSO] pt=[FRENTE/VERSO] desc=[Couchê brilho 250g - refile] p=199
+
+==== CALENDÁRIO DE BOLSO ====
+o=83 id=G113 name=[CALENDÁRIO DE BOLSO] pt=[] desc=[Couchê brilho 250g - 4x4 - Brilho total frente] p=184
+o=84 id=G114 name=[CALENDÁRIO DE BOLSO] pt=[] desc=[Couchê brilho 250g - 4x4 - Brilho total frente] p=228
+o=85 id=G115 name=[CALENDÁRIO DE BOLSO] pt=[] desc=[Couchê brilho 250g - 4x4 - Brilho total frente] p=429
+o=86 id=G116 name=[CALENDÁRIO DE BOLSO] pt=[] desc=[Couchê brilho 250g - 4x4 - Brilho total frente] p=619
+
+==== FOLHINHA COMERCIAL ====
+o=247 id=G277 name=[180x270mm] pt=[] desc=[Duplex 250g - 4x0 - Sem Enobrecimento - Furo 7mm - Grampo] p=199
+o=248 id=G278 name=[180x270mm] pt=[] desc=[Duplex 250g - 4x0 - Sem Enobrecimento - Furo 7mm - Grampo] p=359
+o=249 id=G279 name=[180x270mm] pt=[] desc=[Duplex 250g - 4x0 - Sem Enobrecimento - Furo 7mm - Grampo] p=599
+o=250 id=G280 name=[180x270mm] pt=[] desc=[Duplex 250g - 4x0 - Sem Enobrecimento - Furo 7mm - Grampo] p=1499
+o=251 id=G281 name=[180x270mm] pt=[] desc=[Duplex 250g - 4x0 - Sem Enobrecimento - Furo 7mm - Grampo] p=2799
+o=252 id=G282 name=[180x270mm] pt=[] desc=[Duplex 250g - 4x0 - Sem Enobrecimento - Furo 7mm - Grampo] p=5699
+
+==== SANTINHO ====
+o=133 id=G163 name=[] pt=[FRENTE] desc=[Sulfite 90g - 4x0 - Sem enobrecimento - refile] p=129
+o=134 id=G164 name=[] pt=[FRENTE] desc=[Sulfite 90g - 4x0 - Sem enobrecimento - refile] p=269
+o=135 id=G165 name=[] pt=[FRENTE] desc=[Sulfite 90g - 4x0 - Sem enobrecimento - refile] p=399
+o=136 id=G166 name=[] pt=[FRENTE] desc=[Sulfite 90g - 4x0 - Sem enobrecimento - refile] p=699
+o=137 id=G167 name=[] pt=[FRENTE] desc=[Sulfite 90g - 4x0 - Sem enobrecimento - refile] p=1399
+o=138 id=G168 name=[] pt=[FRENTE / VERSO] desc=[Sulfite 90g - 4x0 - Sem enobrecimento - refile] p=224
+o=139 id=G169 name=[] pt=[FRENTE / VERSO] desc=[Sulfite 90g - 4x0 - Sem enobrecimento - refile] p=299
+o=140 id=G170 name=[] pt=[FRENTE / VERSO] desc=[Sulfite 90g - 4x0 - Sem enobrecimento - refile] p=469
+o=141 id=G171 name=[] pt=[FRENTE / VERSO] desc=[Sulfite 90g - 4x0 - Sem enobrecimento - refile] p=799
+o=142 id=G172 name=[] pt=[FRENTE / VERSO] desc=[Sulfite 90g - 4x0 - Sem enobrecimento - refile] p=1599
+
+==== CRACHÁ ====
+o=225 id=G255 name=[CRACHÁ] pt=[FRENTE] desc=[PVC Branco 0,76mm - 86x54mm - Dados Variáveis - 4 Cantos Arredondados - Furo Oblongo] p=19.9
+o=226 id=G256 name=[CRACHÁ] pt=[FRENTE] desc=[PVC Branco 0,76mm - 86x54mm - Dados Variáveis - 4 Cantos Arredondados - Furo Oblongo] p=89.9
+o=227 id=G257 name=[CRACHÁ] pt=[FRENTE] desc=[PVC Branco 0,76mm - 86x54mm - Dados Variáveis - 4 Cantos Arredondados - Furo Oblongo] p=149.9
+o=228 id=G258 name=[CRACHÁ] pt=[FRENTE] desc=[PVC Branco 0,76mm - 86x54mm - Dados Variáveis - 4 Cantos Arredondados - Furo Oblongo] p=279.9
+o=229 id=G259 name=[CRACHÁ] pt=[FRENTE] desc=[PVC Branco 0,76mm - 86x54mm - Dados Variáveis - 4 Cantos Arredondados - Furo Oblongo] p=419.9
+o=230 id=G260 name=[CRACHÁ] pt=[FRENTE / VERSO] desc=[PVC Branco 0,76mm - 86x54mm - Dados Variáveis - 4 Cantos Arredondados - Furo Oblongo] p=23.8
+o=231 id=G261 name=[CRACHÁ] pt=[FRENTE / VERSO] desc=[PVC Branco 0,76mm - 86x54mm - Dados Variáveis - 4 Cantos Arredondados - Furo Oblongo] p=109
+o=232 id=G262 name=[CRACHÁ] pt=[FRENTE / VERSO] desc=[PVC Branco 0,76mm - 86x54mm - Dados Variáveis - 4 Cantos Arredondados - Furo Oblongo] p=189
+o=233 id=G263 name=[CRACHÁ] pt=[FRENTE / VERSO] desc=[PVC Branco 0,76mm - 86x54mm - Dados Variáveis - 4 Cantos Arredondados - Furo Oblongo] p=299
+o=234 id=G264 name=[CRACHÁ] pt=[FRENTE / VERSO] desc=[PVC Branco 0,76mm - 86x54mm - Dados Variáveis - 4 Cantos Arredondados - Furo Oblongo] p=579
+

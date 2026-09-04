@@ -74,9 +74,9 @@ const GraficaRow = ({ product, formatPrice }) => {
         <td className="px-6 py-4">
           <div className="font-extrabold text-slate-800 dark:text-slate-200 mb-2 uppercase whitespace-nowrap">{product.name || product.subCategory}</div>
           <div className="flex items-center gap-2 mt-1 w-max">
-              {product.quantity && <span className="bg-blue-100 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-500/30 text-[10px] font-bold px-2.5 py-0.5 rounded shadow-sm whitespace-nowrap">Qtd: {product.quantity}</span>}
-              {product.measure && <span className="bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30 text-[10px] font-bold px-2.5 py-0.5 rounded shadow-sm whitespace-nowrap">{product.measure}</span>}
-              {product.printType && <span className="bg-amber-100 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-500/30 text-[10px] font-bold px-2.5 py-0.5 rounded shadow-sm uppercase whitespace-nowrap">{product.printType}</span>}
+              {product.quantity && <span className="bg-gradient-to-r from-blue-100 to-sky-100 dark:from-blue-500/15 dark:to-sky-500/15 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-500/40 ring-1 ring-inset ring-blue-400/20 shadow-md shadow-blue-500/10 text-xs font-extrabold px-3 py-1.5 rounded-lg whitespace-nowrap">Qtd: {product.quantity}</span>}
+              {product.measure && <span className="bg-gradient-to-r from-emerald-100 to-teal-100 dark:from-emerald-500/15 dark:to-teal-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/40 ring-1 ring-inset ring-emerald-400/20 shadow-md shadow-emerald-500/10 text-xs font-extrabold px-3 py-1.5 rounded-lg whitespace-nowrap">{product.measure}</span>}
+              {product.printType && <span className="bg-gradient-to-r from-amber-100 to-orange-100 dark:from-amber-500/15 dark:to-orange-500/15 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-500/40 ring-1 ring-inset ring-amber-400/20 shadow-md shadow-amber-500/10 text-xs font-extrabold px-3 py-1.5 rounded-lg uppercase whitespace-nowrap">{product.printType}</span>}
           </div>
         </td>
         <td className="px-6 py-4 text-slate-600 dark:text-slate-400 text-[13px] leading-relaxed max-w-md">{product.description || '-'}</td>

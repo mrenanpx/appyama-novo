@@ -3,7 +3,7 @@ import { collection, getDocs, query, orderBy, doc, setDoc, getDoc } from 'fireba
 import { db } from './firebase';
 import { Menu, X, Sparkles } from 'lucide-react';
 
-import { CURRENT_APP_VERSION, SHEET_API_URL, BYPASS_TYPE_SUBCATS, uploadTargets } from './constants/products';
+import { CURRENT_APP_VERSION, SHEET_API_URL, uploadTargets } from './constants/products';
 import { handleExternalLink, normalizeStr, formatPrice, parseCSVLine, parseMoney, parseDateDM } from './utils/helpers';
 
 import Sidebar from './components/layout/Sidebar';
@@ -331,6 +331,10 @@ export default function App() {
         types.push(item.name);
       }
     });
+    // Quando a subcategoria não possui variações com "name" preenchido
+    // (ex.: SANTINHO), mantém ao menos a própria Pill selecionável.
+    if (types.length === 0) return [selectedSubCategory];
+
     return types;
   };
 
@@ -349,6 +353,16 @@ export default function App() {
   };
 
 
+  const resolveInitialProductType = (parentCatName, subCatName) => {
+    // Carimbo e Serviços não possuem variação de tipo em tela própria
+    if (parentCatName === 'CARIMBO' || parentCatName === 'SERVIÇOS') return 'TODOS';
+
+    // Gráfica: pula a tela intermediária selecionando o primeiro tipo.
+    // Quando a subcategoria não tem variações, mantém a própria Pill (ex.: SANTINHO).
+    const firstType = getFirstProductType(subCatName);
+    return firstType || subCatName;
+  };
+
   const getFinalProducts = () => {
     const normSearch = normalizeStr(searchTerm);
     return products.filter(item => {
@@ -361,7 +375,8 @@ export default function App() {
         matchesSubCat = normalizeStr(item.subCategory) === normalizeStr(selectedSubCategory);
         matchesType = ['CARIMBO', 'SERVIÇOS'].includes(activeTab) || selectedProductType === 'TODOS' 
           ? true 
-          : normalizeStr(item.name) === normalizeStr(selectedProductType);
+          : normalizeStr(item.name) === normalizeStr(selectedProductType) ||
+            (normalizeStr(item.subCategory) === normalizeStr(selectedProductType) && !item.name?.trim());
       }
       
       const matchesSearch = 
@@ -661,11 +676,115 @@ export default function App() {
   const isGlobalSearch = ['CARIMBO', 'SERVIÇOS'].includes(activeTab) && !selectedSubCategory && normSearchGlobal !== '';
   const isMadeira = activeTab === 'CARIMBO' && selectedSubCategory?.toUpperCase().includes('MADEIRA') && !isGlobalSearch;
   const isAutomatico = activeTab === 'CARIMBO' && !isMadeira;
-  
+
+  // Marcas/subcategorias de Carimbos exibidas como Pills no topo da tabela
+  // (na ordem visual padrão COLOP → TRODAT → MADEIRA → INSUMOS).
+  const CARIMBO_MARCA_ORDER = ['COLOP', 'TRODAT', 'MADEIRA', 'INSUMOS'];
+  const carimboMarcas = (() => {
+    const presentes = [...new Set(
+      products
+        .filter(item => item.category?.toUpperCase().includes('CARIMBO'))
+        .map(item => item.subCategory)
+        .filter(Boolean)
+    )];
+    const marcaUpper = presentes.map(m => m.toUpperCase());
+    const ordered = CARIMBO_MARCA_ORDER.filter(m => marcaUpper.includes(m.toUpperCase()));
+    const resto = presentes.filter(m => !CARIMBO_MARCA_ORDER.some(o => o.toUpperCase() === m.toUpperCase()));
+    return [...ordered, ...resto];
+  })();
+
+  // Categorias/subcategorias de Serviços exibidas como Pills no topo da tabela.
+  // Ordem visual padrão (indiferente a acentos/símbolos/sufixos do cadastro):
+  // CÓPIA → IMPRESSÃO P/B → IMPRESSÃO COLORIDA → PLASTIFICAÇÃO →
+  // ENCADERNAÇÃO → CAPA → ESPIRAL. Qualquer outra categoria é anexada ao final.
+  // Nota: remove-se a pontuação ("P/B" -> "PB") para a Pills casar corretamente.
+  const SERVICO_RANK = [
+    { key: 'COPIA',              match: (n) => n.includes('COPIA') },
+    { key: 'IMPRESSAO PB',       match: (n) => n.includes('IMPRESSAO') && n.includes('PB') },
+    { key: 'IMPRESSAO COLORIDA', match: (n) => n.includes('IMPRESSAO') && n.includes('COLOR') },
+    { key: 'PLASTIFICACAO',      match: (n) => n.includes('PLASTIF') },
+    { key: 'ENCADERNACAO',       match: (n) => n.includes('ENCADERN') },
+    { key: 'CAPA',               match: (n) => n.includes('CAPA') },
+    { key: 'ESPIRAL',            match: (n) => n.includes('ESPIRAL') },
+  ];
+  const servicoCategorias = (() => {
+    const presentes = [...new Set(
+      products
+        .filter(item => item.category?.toUpperCase().includes('SERVIÇOS'))
+        .map(item => item.subCategory)
+        .filter(Boolean)
+    )];
+    // Token limpo: normaliza o rótulo removendo acentos E pontuação (/"- etc.)
+    // para que "IMPRESSÃO P/B" seja tratado como "IMPRESSAOPB".
+    const token = (s) => normalizeStr(s).replace(/[^A-Z0-9]/g, '');
+    return [...presentes].sort((a, b) => {
+      const ra = SERVICO_RANK.findIndex(r => r.match(token(a)));
+      const rb = SERVICO_RANK.findIndex(r => r.match(token(b)));
+      const ia = ra === -1 ? SERVICO_RANK.length : ra;
+      const ib = rb === -1 ? SERVICO_RANK.length : rb;
+      return ia - ib; // estável: itens fora da lista preservam a ordem de chegada
+    });
+  })();
+
   const isCopiaImpressao = activeTab === 'SERVIÇOS' && ['COPIA', 'IMPRESSÃO P/B', 'IMPRESSÃO PB', 'IMPRESSÃO COLORIDA'].includes(selectedSubCategory?.toUpperCase());
   const isCapa = activeTab === 'SERVIÇOS' && ['CAPA', 'CONTRA CAPA', 'CAPA E CONTRA CAPA', 'CAPA E CONTRA-CAPA', 'CAPA & CONTRA CAPA'].includes(selectedSubCategory?.toUpperCase());
   const isEspiral = activeTab === 'SERVIÇOS' && ['ESPIRAL'].includes(selectedSubCategory?.toUpperCase());
   const isPlastificacao = activeTab === 'SERVIÇOS' && ['PLASTIFICAÇÃO', 'POLASEAL', 'PLASTIFICAÇÃO E POLASEAL', 'PLASTIFICAÇÃO & POLASEAL'].includes(selectedSubCategory?.toUpperCase());
+
+  // Tecla ESC: fecha o "nível" atual da interface e, ao final,
+  // volta 1 tela na trilha de navegação, sempre parando na HOME.
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key !== 'Escape') return;
+
+      // 1) Fecha qualquer overlay/menu/modal aberto primeiro.
+      if (isExtrasOpen) { setIsExtrasOpen(false); return; }
+      if (showAdminModal) { setShowAdminModal(false); setAdminPassword(''); setPasswordError(''); return; }
+      if (modalOpen) { setModalOpen(false); return; }
+      if (mobileMenuOpen) { setMobileMenuOpen(false); return; }
+
+      // 2) Com subcategoria/tipo aberta, volta para a grade de subcategorias.
+      if (['GRÁFICA', 'CARIMBO', 'SERVIÇOS'].includes(activeTab) && selectedSubCategory) {
+        // Carimbos e Serviços entram direto numa subcategoria (sem tela
+        // intermediária de categoria), então o ESC volta para a HOME direto,
+        // sem passar pelo grid de "botões de categoria".
+        if (activeTab === 'CARIMBO' || activeTab === 'SERVIÇOS') {
+          triggerAnimation();
+          setActiveTab('HOME');
+          setSelectedSubCategory(null);
+          setSelectedProductType(null);
+          setSearchTerm('');
+          setIsExtrasOpen(false);
+          setMobileMenuOpen(false);
+          return;
+        }
+        // Gráfica mantém o comportamento atual: volta para a grade de subcategorias.
+        triggerAnimation();
+        setSelectedSubCategory(null);
+        setSelectedProductType(null);
+        return;
+      }
+
+      // 3) Nas demais telas, volta para a tela inicial (parando nela).
+      if (activeTab !== 'HOME') {
+        triggerAnimation();
+        setActiveTab('HOME');
+        setSelectedSubCategory(null);
+        setSelectedProductType(null);
+        setSearchTerm('');
+        setIsExtrasOpen(false);
+        setMobileMenuOpen(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [
+    isExtrasOpen, showAdminModal, modalOpen, mobileMenuOpen,
+    activeTab, selectedSubCategory
+  ]);
+  // (os setters e a triggerAnimation são estáveis; o efeito acima precisa
+  //  apenas refletir o estado atual quando o ESC for pressionado)
 
   const hasUpdate = appUpdateInfo && appUpdateInfo.latestVersion && appUpdateInfo.latestVersion.replace(/\s+/g, '').toLowerCase() !== CURRENT_APP_VERSION.replace(/\s+/g, '').toLowerCase() && !dismissUpdate;
 
@@ -802,17 +921,7 @@ export default function App() {
                         setSelectedSubCategory(subCat); 
                         setSearchTerm(''); 
                         setIsExtrasOpen(false);
-                        const isBypass = BYPASS_TYPE_SUBCATS.includes(normalizeStr(subCat));
-                        const hasTypes = products.some(p => p.category?.toUpperCase().includes(activeTab) && p.subCategory === subCat && p.name?.trim() !== '');
-                        if (['CARIMBO', 'SERVIÇOS'].includes(activeTab) || !hasTypes || isBypass) {
-                          setSelectedProductType('TODOS');
-                        } else if (activeTab === 'GRÁFICA') {
-                          // Auto-seleciona o primeiro tipo (por ordem) para pular a tela intermediária
-                          const firstType = getFirstProductType(subCat);
-                          setSelectedProductType(firstType || 'TODOS');
-                        } else {
-                          setSelectedProductType(null);
-                        }
+                        setSelectedProductType(resolveInitialProductType(activeTab, subCat));
                       }} 
 
                       className="relative w-full cursor-pointer group rounded-xl p-[2px] transition-all duration-500 hover:scale-[1.02]"
@@ -865,6 +974,34 @@ export default function App() {
                           onOpen={() => setIsExtrasOpen(true)}
                         />
                       }
+                    />
+                  )}
+
+                  {activeTab === 'CARIMBO' && carimboMarcas.length > 0 && (
+                    <ProductTypePills
+                      productTypes={carimboMarcas}
+                      selectedProductType={selectedSubCategory}
+                      onSelectType={(marca) => {
+                        setSelectedSubCategory(marca);
+                        setSelectedProductType(resolveInitialProductType('CARIMBO', marca));
+                        setSearchTerm('');
+                        setIsExtrasOpen(false);
+                      }}
+                      triggerAnimation={triggerAnimation}
+                    />
+                  )}
+
+                  {activeTab === 'SERVIÇOS' && servicoCategorias.length > 0 && (
+                    <ProductTypePills
+                      productTypes={servicoCategorias}
+                      selectedProductType={selectedSubCategory}
+                      onSelectType={(categoria) => {
+                        setSelectedSubCategory(categoria);
+                        setSelectedProductType('TODOS');
+                        setSearchTerm('');
+                        setIsExtrasOpen(false);
+                      }}
+                      triggerAnimation={triggerAnimation}
                     />
                   )}
 

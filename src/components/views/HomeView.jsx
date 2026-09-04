@@ -2,7 +2,6 @@ import adsSvg from '../../assets/logos/ads.svg';
 import crbSvg from '../../assets/logos/crb.svg';
 import prtSvg from '../../assets/logos/prt.svg';
 import { normalizeStr } from '../../utils/helpers';
-import { BYPASS_TYPE_SUBCATS } from '../../constants/products';
 import { getServiceUnit, getServiceTiers } from '../../constants/servicePricing';
 
 const QUICK_COLORS = {
@@ -51,7 +50,7 @@ const QuickCalcCard = ({ title, color, qtd, setQtd, priceFn, tiers, formatPrice 
 };
 
 const HomeView = ({ 
-  products, theme, searchTerm, setSearchTerm, formatPrice,
+  products, searchTerm, setSearchTerm, formatPrice,
   triggerAnimation, setActiveTab, setSelectedSubCategory, setSelectedProductType, setIsExtrasOpen,
   calcCopiaQtd, setCalcCopiaQtd, calcPbQtd, setCalcPbQtd, calcColorQtd, setCalcColorQtd,
   getFirstProductType
@@ -77,6 +76,74 @@ const HomeView = ({
         )
       )
     : [];
+
+  const findCarimboDefaultSub = () => {
+    const present = [...new Set(
+      products
+        .filter(item => item.category?.toUpperCase().includes('CARIMBO'))
+        .map(item => item.subCategory)
+        .filter(Boolean)
+    )];
+    const order = ['COLOP', 'TRODAT', 'MADEIRA', 'INSUMOS'];
+    const orderedPresent = order.filter(o => present.map(s => s.toUpperCase()).includes(o));
+    if (orderedPresent.length > 0) return orderedPresent[0];
+    return present[0] || 'TRODAT';
+  };
+
+  const findServicoDefaultSub = () => {
+    // Garante a ordem padrão das categorias de Serviços na entrada
+    // (CÓPIA → IMPRESSÃO P/B → IMPRESSÃO COLORIDA → PLASTIFICAÇÃO → ...).
+    // A pontuação ("P/B") é removida para que o casamento funcione com acentos/símbolos.
+    const SERVICO_RANK = [
+      (n) => n.includes('COPIA'),
+      (n) => n.includes('IMPRESSAO') && n.includes('PB'),
+      (n) => n.includes('IMPRESSAO') && n.includes('COLOR'),
+      (n) => n.includes('PLASTIF'),
+      (n) => n.includes('ENCADERN'),
+      (n) => n.includes('CAPA'),
+      (n) => n.includes('ESPIRAL'),
+    ];
+    const token = (s) => normalizeStr(s).replace(/[^A-Z0-9]/g, '');
+    const present = [...new Set(
+      products
+        .filter(item => item.category?.toUpperCase().includes('SERVIÇOS'))
+        .map(item => item.subCategory)
+        .filter(Boolean)
+    )];
+    let best = null;
+    let bestRank = SERVICO_RANK.length;
+    for (const sub of present) {
+      const n = token(sub);
+      const rank = SERVICO_RANK.findIndex(fn => fn(n));
+      const idx = rank === -1 ? SERVICO_RANK.length : rank;
+      if (idx < bestRank) { bestRank = idx; best = sub; }
+    }
+    return best || present[0] || 'COPIA';
+  };
+
+  const handleCategoryCardClick = (cat) => {
+    triggerAnimation();
+    setSearchTerm('');
+    setIsExtrasOpen(false);
+
+    if (cat === 'CARIMBO') {
+      // Carimbos: entra direto na subcategoria padrão (COLOP quando existir),
+      // como acontece com a Gráfica – com as Pills de marca no topo.
+      const defaultSub = findCarimboDefaultSub();
+      setSelectedSubCategory(defaultSub);
+      setSelectedProductType('TODOS');
+    } else if (cat === 'SERVIÇOS') {
+      // Serviços: entra direto na primeira categoria (COPIA quando existir),
+      // seguindo o mesmo esquema de Pills usado pelos Carimbos.
+      const defaultSub = findServicoDefaultSub();
+      setSelectedSubCategory(defaultSub);
+      setSelectedProductType('TODOS');
+    } else {
+      setSelectedSubCategory(null);
+      setSelectedProductType(null);
+    }
+    setActiveTab(cat);
+  };
 
   return (
     <div className="flex flex-col gap-8">
@@ -104,16 +171,13 @@ const HomeView = ({
                           setSelectedSubCategory(subCat); 
                           setSearchTerm(''); 
                           setIsExtrasOpen(false);
-                          const isBypass = BYPASS_TYPE_SUBCATS.includes(normalizeStr(subCat));
-                          const hasTypes = products.some(p => p.category?.toUpperCase().includes(parentCat) && p.subCategory === subCat && p.name?.trim() !== '');
-                          if (['CARIMBO', 'SERVIÇOS'].includes(parentCat) || !hasTypes || isBypass) {
+                          if (parentCat === 'CARIMBO' || parentCat === 'SERVIÇOS') {
                             setSelectedProductType('TODOS');
-                          } else if (parentCat === 'GRÁFICA') {
-                            // Auto-seleciona o primeiro tipo para pular a tela intermediária
-                            const firstType = getFirstProductType ? getFirstProductType(subCat) : null;
-                            setSelectedProductType(firstType || 'TODOS');
                           } else {
-                            setSelectedProductType(null);
+                            // Gráfica: pula a tela intermediária escolhendo o primeiro tipo.
+                            // Quando não há variação (ex.: SANTINHO), mantém a própria Pill.
+                            const firstType = getFirstProductType ? getFirstProductType(subCat) : null;
+                            setSelectedProductType(firstType || subCat);
                           }
                         }} 
 
@@ -186,7 +250,7 @@ const HomeView = ({
             ].map(card => (
               <div 
                 key={card.id} 
-                onClick={() => { triggerAnimation(); setActiveTab(card.id); setIsExtrasOpen(false); }} 
+                onClick={() => handleCategoryCardClick(card.id)} 
                 className="relative w-full h-[260px] cursor-pointer group rounded-2xl p-[2px] transition-all duration-500 hover:scale-[1.02]"
               >
                 <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-emerald-400 to-blue-500 opacity-0 group-hover:opacity-75 blur-md transition-all duration-500 -z-10"></div>
@@ -197,7 +261,8 @@ const HomeView = ({
                     <img 
                       src={card.icon} 
                       alt={card.title} 
-                      className={`w-20 h-20 object-contain filter transition-all duration-500 group-hover:drop-shadow-[0_0_10px_rgba(52,211,153,0.6)] ${theme === 'dark' ? 'brightness-0 invert' : ''}`} 
+                      className="w-20 h-20 object-contain filter transition-all duration-500 group-hover:drop-shadow-[0_0_10px_rgba(37,99,235,0.55)]"
+                      style={{ filter: 'invert(37%) sepia(87%) saturate(1832%) hue-rotate(202deg) brightness(97%) contrast(101%)' }} 
                     />
                   </div>
 

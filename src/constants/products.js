@@ -1,4 +1,4 @@
-export const CURRENT_APP_VERSION = "v.1.0.9";
+export const CURRENT_APP_VERSION = "v.1.1.0";
 
 export const regrasProdutos = {
   "BASTAO": { minL: 50, maxL: 200, minA: 50, maxA: 1000, minQtd: 1, minVal: 60, fator: 1.24, isAdesivo: false },
@@ -11,13 +11,9 @@ export const regrasProdutos = {
   "VINIL": { minL: 5, maxL: 140, minA: 5, maxA: 1000, minQtd: 1, minVal: 82, fator: 1.84, isAdesivo: true }
 };
 
-export const BYPASS_TYPE_SUBCATS = [
-  "MARCA PAGINA", 
-  "CALENDARIO DE BOLSO", 
-  "SANTINHO", 
-  "CRACHA", 
-  "FOLHINHA COMERCIAL"
-];
+// (Histórico) O auto-seleção de tipos hoje não depende desta lista: subcategorias
+// gráficas selecionam automaticamente o primeiro tipo real (ou a própria Pill, ex. SANTINHO).
+export const BYPASS_TYPE_SUBCATS = [];
 
 export const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbztdiR-eqX5qvv3oynhnbhZBqVyvKVdCC7V31tJdtRzPceOx2BHZDpDzrqiMJ3YO9a02A/exec";
 

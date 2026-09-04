@@ -1,6 +1,4 @@
 import { Search } from 'lucide-react';
-import { BYPASS_TYPE_SUBCATS } from '../../constants/products';
-import { normalizeStr } from '../../utils/helpers';
 
 const Breadcrumb = ({ 
   activeTab, selectedSubCategory, selectedProductType, products,
@@ -18,9 +16,24 @@ const Breadcrumb = ({
         {activeTab !== 'HOME' && (
           <>
             <span className="text-slate-400 dark:text-slate-700 font-normal">/</span>
-            <button onClick={() => { triggerAnimation(); setSelectedSubCategory(null); setSelectedProductType(null); setSearchTerm(''); setIsExtrasOpen(false); }} className={`uppercase tracking-wider transition-colors cursor-pointer ${!selectedSubCategory ? 'text-slate-800 dark:text-slate-200' : 'text-blue-600 dark:text-blue-500 hover:text-blue-700 dark:hover:text-blue-400'}`}>
-              {activeTab === 'ADMIN' ? 'Administrador' : activeTab === 'CHANGELOG' ? 'Changelog' : activeTab.replace('_', ' ')}
-            </button>
+            {(() => {
+              const label = activeTab === 'ADMIN' ? 'Administrador' : activeTab === 'CHANGELOG' ? 'Changelog' : activeTab.replace('_', ' ');
+              // Carimbos e Serviços usam Pills para navegar: o clique no breadcrumb
+              // não deve mais voltar para a antiga tela de seleção (grade).
+              const bolted = ['CARIMBO', 'SERVIÇOS'].includes(activeTab);
+              if (bolted) {
+                return (
+                  <span className="uppercase tracking-wider text-slate-800 dark:text-slate-200">
+                    {label}
+                  </span>
+                );
+              }
+              return (
+                <button onClick={() => { triggerAnimation(); setSelectedSubCategory(null); setSelectedProductType(null); setSearchTerm(''); setIsExtrasOpen(false); }} className={`uppercase tracking-wider transition-colors cursor-pointer ${!selectedSubCategory ? 'text-slate-800 dark:text-slate-200' : 'text-blue-600 dark:text-blue-500 hover:text-blue-700 dark:hover:text-blue-400'}`}>
+                  {label}
+                </button>
+              );
+            })()}
           </>
         )}
 
@@ -28,10 +41,9 @@ const Breadcrumb = ({
           <>
             <span className="text-slate-400 dark:text-slate-700 font-normal">/</span>
             <button onClick={() => { 
-              if (activeTab === 'GRÁFICA') { 
-                const isBypass = BYPASS_TYPE_SUBCATS.includes(normalizeStr(selectedSubCategory));
+              if (activeTab === 'GRÁFICA') {
                 const hasTypes = products.some(p => p.category?.toUpperCase().includes('GRÁFICA') && p.subCategory?.toUpperCase() === selectedSubCategory.toUpperCase() && p.name?.trim() !== '');
-                if(hasTypes && !isBypass){
+                if(hasTypes){
                   triggerAnimation(); 
                   // Auto-seleciona o primeiro tipo para pular a tela intermediária
                   const firstType = getFirstProductType ? getFirstProductType(selectedSubCategory) : null;
