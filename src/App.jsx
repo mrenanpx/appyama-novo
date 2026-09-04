@@ -12,7 +12,7 @@ import { UploadModal, AdminModal } from './components/layout/Modals';
 import HomeView from './components/views/HomeView';
 import ProductTable from './components/tables/ProductTable';
 import ServiceCalculator from './components/tables/ServiceCalculator';
-import AcabamentosExtras from './components/cards/AcabamentosExtras';
+import AcabamentosExtras, { AcabamentosExtrasModal, getAcabamentosConfig } from './components/cards/AcabamentosExtras';
 import ProductTypePills from './components/cards/ProductTypePills';
 
 import {
@@ -734,6 +734,13 @@ export default function App() {
         passwordError={passwordError} handleLogin={handleLogin}
       />
 
+      <AcabamentosExtrasModal
+        isOpen={isExtrasOpen}
+        onClose={() => setIsExtrasOpen(false)}
+        config={getAcabamentosConfig(activeTab, selectedSubCategory, selectedProductType)}
+        productName={activeTab === 'GRÁFICA' ? selectedProductType : null}
+      />
+
       <Sidebar 
         activeTab={activeTab} setActiveTab={setActiveTab} searchTerm={searchTerm}
         setSearchTerm={setSearchTerm} theme={theme} setTheme={setTheme}
@@ -843,22 +850,23 @@ export default function App() {
               )}
 
               {((activeTab === 'GRÁFICA' && selectedSubCategory && selectedProductType) || (['CARIMBO', 'SERVIÇOS'].includes(activeTab) && selectedSubCategory)) && (
-                <div className="flex flex-col gap-6">
-                  
+                <div className="flex flex-col gap-4">
+
                   {activeTab === 'GRÁFICA' && getProductTypes().length > 0 && (
                     <ProductTypePills 
                       productTypes={getProductTypes()}
                       selectedProductType={selectedProductType}
                       onSelectType={(type) => { setSelectedProductType(type); setSearchTerm(''); setIsExtrasOpen(false); }}
                       triggerAnimation={triggerAnimation}
+                      extraButton={
+                        <AcabamentosExtras
+                          activeTab={activeTab} selectedSubCategory={selectedSubCategory}
+                          selectedProductType={selectedProductType}
+                          onOpen={() => setIsExtrasOpen(true)}
+                        />
+                      }
                     />
                   )}
-
-
-                  <AcabamentosExtras 
-                    activeTab={activeTab} selectedSubCategory={selectedSubCategory}
-                    selectedProductType={selectedProductType}
-                  />
 
                   {activeTab === 'SERVIÇOS' && <ServiceCalculator subCat={selectedSubCategory} formatPrice={formatPrice} />}
 

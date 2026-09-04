@@ -3,6 +3,52 @@ import crbSvg from '../../assets/logos/crb.svg';
 import prtSvg from '../../assets/logos/prt.svg';
 import { normalizeStr } from '../../utils/helpers';
 import { BYPASS_TYPE_SUBCATS } from '../../constants/products';
+import { getServiceUnit, getServiceTiers } from '../../constants/servicePricing';
+
+const QUICK_COLORS = {
+  blue: { text: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300', focus: 'focus:border-blue-500' },
+  emerald: { text: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300', focus: 'focus:border-emerald-500' },
+  purple: { text: 'text-purple-600 dark:text-purple-400', bg: 'bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300', focus: 'focus:border-purple-500' }
+};
+
+const QuickCalcCard = ({ title, color, qtd, setQtd, priceFn, tiers, formatPrice }) => {
+  const p = priceFn(qtd);
+  const total = qtd * p;
+  const nextT = tiers.find(t => qtd <= t);
+  const faltam = nextT ? (nextT + 1) - qtd : null;
+  const c = QUICK_COLORS[color];
+  return (
+    <div className="bg-slate-50 dark:bg-[#1a2234] border border-slate-200 dark:border-[#26334d] p-4 rounded-xl flex flex-col justify-between gap-3">
+      <div className="flex flex-col gap-2">
+        <div className="flex justify-between items-center">
+          <span className={`text-xs font-bold uppercase tracking-wider ${c.text}`}>{title}</span>
+          {qtd > 0 && <span className={`text-[10px] ${c.bg} px-2 py-0.5 rounded font-bold`}>{formatPrice(p)}/un</span>}
+        </div>
+        <div className="flex items-center gap-2 mt-1">
+          <input
+            type="number"
+            placeholder="Qtd de páginas"
+            value={qtd || ''}
+            onChange={(e) => setQtd(e.target.value === '' ? 0 : Math.max(0, Number(e.target.value)))}
+            className={`w-full bg-white dark:bg-[#121826] border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-white focus:outline-none ${c.focus}`}
+          />
+        </div>
+        <div className="h-5">
+          {qtd > 0 && faltam && (
+            <div className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+              Faltam {faltam} unid para o valor baixar!
+            </div>
+          )}
+        </div>
+      </div>
+      <div className="flex justify-between items-center pt-2 border-t border-slate-200 dark:border-slate-700 text-xs">
+        <span className="text-slate-500 dark:text-slate-400">Total Estimado:</span>
+        <span className="font-bold text-sm text-slate-900 dark:text-white">{formatPrice(total)}</span>
+      </div>
+    </div>
+  );
+};
 
 const HomeView = ({ 
   products, theme, searchTerm, setSearchTerm, formatPrice,
@@ -31,50 +77,6 @@ const HomeView = ({
         )
       )
     : [];
-
-  const QuickCalcCard = ({ title, color, qtd, setQtd, priceFn, tiers }) => {
-    const p = priceFn(qtd);
-    const total = qtd * p;
-    const nextT = tiers.find(t => qtd <= t);
-    const faltam = nextT ? (nextT + 1) - qtd : null;
-    const colorMap = {
-      blue: { text: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300', focus: 'focus:border-blue-500' },
-      emerald: { text: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300', focus: 'focus:border-emerald-500' },
-      purple: { text: 'text-purple-600 dark:text-purple-400', bg: 'bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300', focus: 'focus:border-purple-500' }
-    };
-    const c = colorMap[color];
-    return (
-      <div className="bg-slate-50 dark:bg-[#1a2234] border border-slate-200 dark:border-[#26334d] p-4 rounded-xl flex flex-col justify-between gap-3">
-        <div className="flex flex-col gap-2">
-          <div className="flex justify-between items-center">
-            <span className={`text-xs font-bold uppercase tracking-wider ${c.text}`}>{title}</span>
-            {qtd > 0 && <span className={`text-[10px] ${c.bg} px-2 py-0.5 rounded font-bold`}>{formatPrice(p)}/un</span>}
-          </div>
-          <div className="flex items-center gap-2 mt-1">
-            <input 
-              type="number" 
-              placeholder="Qtd de páginas" 
-              value={qtd || ''}
-              onChange={(e) => setQtd(Math.max(0, Number(e.target.value)))}
-              className={`w-full bg-white dark:bg-[#121826] border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-white focus:outline-none ${c.focus}`}
-            />
-          </div>
-          <div className="h-5">
-            {qtd > 0 && faltam && (
-              <div className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
-                Faltam {faltam} unid para o valor baixar!
-              </div>
-            )}
-          </div>
-        </div>
-        <div className="flex justify-between items-center pt-2 border-t border-slate-200 dark:border-slate-700 text-xs">
-          <span className="text-slate-500 dark:text-slate-400">Total Estimado:</span>
-          <span className="font-bold text-sm text-slate-900 dark:text-white">{formatPrice(total)}</span>
-        </div>
-      </div>
-    );
-  };
 
   return (
     <div className="flex flex-col gap-8">
@@ -222,18 +224,21 @@ const HomeView = ({
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
               <QuickCalcCard 
                 title="Cópia Simples" color="blue" qtd={calcCopiaQtd} setQtd={setCalcCopiaQtd}
-                priceFn={(q) => q <= 10 ? 0.50 : q <= 50 ? 0.45 : q <= 199 ? 0.40 : 0.35}
-                tiers={[10, 50, 199]}
+                priceFn={(q) => getServiceUnit('CÓPIA', 'A4', q)}
+                tiers={getServiceTiers('CÓPIA')}
+                formatPrice={formatPrice}
               />
               <QuickCalcCard 
                 title="Impressão P&B" color="emerald" qtd={calcPbQtd} setQtd={setCalcPbQtd}
-                priceFn={(q) => q <= 10 ? 0.90 : q <= 20 ? 0.75 : q <= 30 ? 0.60 : q <= 80 ? 0.50 : q <= 199 ? 0.40 : 0.30}
-                tiers={[10, 20, 30, 80, 199]}
+                priceFn={(q) => getServiceUnit('IMPRESSÃO P/B', 'A4', q)}
+                tiers={getServiceTiers('IMPRESSÃO P/B')}
+                formatPrice={formatPrice}
               />
               <QuickCalcCard 
                 title="Impressão Colorida" color="purple" qtd={calcColorQtd} setQtd={setCalcColorQtd}
-                priceFn={(q) => q <= 10 ? 1.70 : q <= 20 ? 1.50 : q <= 50 ? 1.40 : 1.30}
-                tiers={[10, 20, 50]}
+                priceFn={(q) => getServiceUnit('IMPRESSÃO COLORIDA', 'A4', q)}
+                tiers={getServiceTiers('IMPRESSÃO COLORIDA')}
+                formatPrice={formatPrice}
               />
             </div>
           </div>

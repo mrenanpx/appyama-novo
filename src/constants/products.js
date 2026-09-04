@@ -1,4 +1,4 @@
-export const CURRENT_APP_VERSION = "v.1.0.6";
+export const CURRENT_APP_VERSION = "v.1.0.9";
 
 export const regrasProdutos = {
   "BASTAO": { minL: 50, maxL: 200, minA: 50, maxA: 1000, minQtd: 1, minVal: 60, fator: 1.24, isAdesivo: false },

@@ -3,7 +3,8 @@ const ProductTypePills = ({
   productTypes, 
   selectedProductType, 
   onSelectType,
-  triggerAnimation
+  triggerAnimation,
+  extraButton
 }) => {
   if (!productTypes || productTypes.length === 0) return null;
 
@@ -15,7 +16,7 @@ const ProductTypePills = ({
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 mb-6 animate-fade-in-up">
+    <div className="flex flex-wrap items-center justify-center gap-2.5 sm:gap-3 animate-fade-in-up">
       {productTypes.map((type) => {
         const isActive = selectedProductType === type;
         return (
@@ -44,6 +45,8 @@ const ProductTypePills = ({
           </button>
         );
       })}
+
+      {extraButton}
     </div>
   );
 };

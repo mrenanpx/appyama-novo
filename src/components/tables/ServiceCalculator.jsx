@@ -1,35 +1,24 @@
 import { useState } from 'react';
 import { Printer, FileText, Copy, Minus, Plus, ChevronsUp } from 'lucide-react';
 import { copyToClipboard } from '../../utils/helpers';
+import { getServiceUnit, getServiceTiers, getServiceLabel } from '../../constants/servicePricing';
 
 const ServiceCalculator = ({ subCat, formatPrice }) => {
   const [qtdA4, setQtdA4] = useState(0);
   const [qtdA3, setQtdA3] = useState(0);
 
-  const tipo = subCat?.toUpperCase();
-  let pA4 = 0, pA3 = 0;
+  const tipo = getServiceLabel(subCat);
+  const pA4 = getServiceUnit(tipo, 'A4', qtdA4);
+  const pA3 = getServiceUnit(tipo, 'A3', qtdA3);
 
-  if (tipo === "COPIA") {
-      pA4 = qtdA4 <= 10 ? 0.50 : qtdA4 <= 50 ? 0.45 : qtdA4 <= 199 ? 0.40 : 0.35;
-      pA3 = qtdA3 <= 10 ? 1.00 : qtdA3 <= 50 ? 0.90 : qtdA3 <= 199 ? 0.80 : 0.70;
-  } else if (tipo === "IMPRESSÃO P/B" || tipo === "IMPRESSÃO PB") {
-      pA4 = qtdA4 <= 10 ? 0.90 : qtdA4 <= 20 ? 0.75 : qtdA4 <= 30 ? 0.60 : qtdA4 <= 80 ? 0.50 : qtdA4 <= 199 ? 0.40 : 0.30;
-      pA3 = qtdA3 <= 10 ? 1.75 : qtdA3 <= 20 ? 1.50 : qtdA3 <= 30 ? 1.20 : qtdA3 <= 80 ? 1.00 : qtdA3 <= 199 ? 0.80 : 0.60;
-  } else if (tipo === "IMPRESSÃO COLORIDA") {
-      pA4 = qtdA4 <= 10 ? 1.70 : qtdA4 <= 20 ? 1.50 : qtdA4 <= 50 ? 1.40 : 1.30;
-      pA3 = qtdA3 <= 10 ? 3.40 : qtdA3 <= 20 ? 3.00 : qtdA3 <= 50 ? 2.80 : 2.70;
-  }
-
-  if (!['COPIA', 'IMPRESSÃO P/B', 'IMPRESSÃO PB', 'IMPRESSÃO COLORIDA'].includes(tipo)) return null;
+  const isService = ['COPIA', 'IMPRESSÃO P/B', 'IMPRESSÃO PB', 'IMPRESSÃO COLORIDA'].includes(subCat?.toUpperCase());
+  if (!isService) return null;
 
   const totalA4 = qtdA4 * pA4;
   const totalA3 = qtdA3 * pA3;
 
   const getNextTierInfo = (qtd) => {
-    let tiers = [];
-    if (tipo === "COPIA") tiers = [10, 50, 199];
-    else if (tipo === "IMPRESSÃO P/B" || tipo === "IMPRESSÃO PB") tiers = [10, 20, 30, 80, 199];
-    else if (tipo === "IMPRESSÃO COLORIDA") tiers = [10, 20, 50];
+    const tiers = getServiceTiers(tipo);
 
     for (let t of tiers) {
       if (qtd <= t) return { faltam: (t + 1) - qtd, proximoAlvo: t + 1 };
