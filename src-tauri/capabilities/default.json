@@ -6,6 +6,8 @@
   ],
   "permissions": [
     "core:default",
+    "dialog:allow-save",
+    "fs:allow-write-file",
     {
       "identifier": "shell:allow-open",
       "allow": [

@@ -1,6 +1,6 @@
 import { 
   Home, Package, Clock, CalendarDays, Download, Upload, History,
-  Search, Sun, Moon, Cog, Lock, Unlock
+  Search, Sun, Moon, Cog, Lock, Unlock, Wand2
 } from 'lucide-react';
 
 const Sidebar = ({ 
@@ -98,6 +98,7 @@ const Sidebar = ({
           <div className="my-3 border-t border-slate-200 dark:border-[#1e293b]"></div>
 
           <SidebarButton icon={<Search className="w-5 h-5" />} id="CONSULTAS" label="Consultas Rápidas"/>
+          <SidebarButton icon={<Wand2 className="w-5 h-5" />} id="FERRAMENTAS" label="Ferramentas"/>
           <SidebarButton icon={<Package className="w-5 h-5" />} id="FORNECEDORES" label="Fornecedores"/>
           <SidebarButton icon={<Clock className="w-5 h-5" />} id="CONTROLE_HORAS" label="Controle de Horas"/>
           <SidebarButton icon={<CalendarDays className="w-5 h-5" />} id="ESCALA_FOLGAS" label="Escala de Folgas"/>

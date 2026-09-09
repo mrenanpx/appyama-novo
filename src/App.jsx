@@ -19,6 +19,7 @@ import {
   ChangelogView, SuppliersView, HoursControlView, FolgasView,
   ConsultasView, DownloadsView, UploadsView, AdminView
 } from './components/views/OtherViews';
+import ToolsView from './components/views/ToolsView';
 
 export default function App() {
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark');
@@ -1054,6 +1055,10 @@ export default function App() {
 
               {activeTab === 'DOWNLOADS' && (
                 <DownloadsView handleExternalLink={handleExternalLink} />
+              )}
+
+              {activeTab === 'FERRAMENTAS' && (
+                <ToolsView />
               )}
 
               {activeTab === 'UPLOADS' && (
