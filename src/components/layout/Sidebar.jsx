@@ -1,12 +1,13 @@
 import { 
   Home, Package, Clock, CalendarDays, Download, Upload, History,
-  Search, Sun, Moon, Cog, Lock, Unlock, Wand2
+  Search, Sun, Moon, Cog, Lock, Unlock, Wand2, FileSpreadsheet
 } from 'lucide-react';
 
 const Sidebar = ({ 
   activeTab, setActiveTab, searchTerm, setSearchTerm, theme, setTheme,
   isAdmin, handleGoHome, handleAdminClick, mobileMenuOpen, setMobileMenuOpen,
-  triggerAnimation, setSelectedSubCategory, setSelectedProductType, setUploadStatus, setIsExtrasOpen
+  triggerAnimation, setSelectedSubCategory, setSelectedProductType, setUploadStatus, setIsExtrasOpen,
+  onOpenStoreModal
 }) => {
   const SidebarButton = ({ id, label, icon, onClick, isLock }) => {
     const isActive = activeTab === id;
@@ -97,6 +98,7 @@ const Sidebar = ({
           
           <div className="my-3 border-t border-slate-200 dark:border-[#1e293b]"></div>
 
+          <SidebarButton icon={<FileSpreadsheet className="w-5 h-5" />} id="ORCAMENTO" label="Orçamento" onClick={() => { setMobileMenuOpen(false); onOpenStoreModal(); }} />
           <SidebarButton icon={<Search className="w-5 h-5" />} id="CONSULTAS" label="Consultas Rápidas"/>
           <SidebarButton icon={<Wand2 className="w-5 h-5" />} id="FERRAMENTAS" label="Ferramentas"/>
           <SidebarButton icon={<Package className="w-5 h-5" />} id="FORNECEDORES" label="Fornecedores"/>

@@ -1,10 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { collection, getDocs, query, orderBy, doc, setDoc, getDoc } from 'firebase/firestore';
 import { db } from './firebase';
-import { Menu, X, Sparkles } from 'lucide-react';
+import { Menu, X, Building2, Plus, FileSpreadsheet } from 'lucide-react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
-import { CURRENT_APP_VERSION, SHEET_API_URL, uploadTargets } from './constants/products';
-import { handleExternalLink, normalizeStr, formatPrice, parseCSVLine, parseMoney, parseDateDM } from './utils/helpers';
+import { SHEET_API_URL, uploadTargets } from './constants/products';
+import { handleExternalLink, normalizeStr, formatPrice, parseCSVLine, parseMoney, parseDateDM, showToast } from './utils/helpers';
 
 import Sidebar from './components/layout/Sidebar';
 import Breadcrumb from './components/layout/Breadcrumb';
@@ -20,6 +22,45 @@ import {
   ConsultasView, DownloadsView, UploadsView, AdminView
 } from './components/views/OtherViews';
 import ToolsView from './components/views/ToolsView';
+
+const DADOS_UNIDADES = {
+  "MOGI": {
+    razao: "YAMA PRINT - PAPELARIA E GRÁFICA RÁPIDA",
+    cnpj: "23.870.982/0001-78",
+    site: "www.yamaprint.com.br",
+    endereco: "Rua Princesa Isabel de Bragança, 334 - Centro - Mogi das Cruzes/SP",
+    cep: "08710-460",
+    whatsapp: "11 3458-9796",
+    email: "mogi@yamaprint.com.br"
+  },
+  "SUZANO": {
+    razao: "YAMA PRINT - PAPELARIA E GRÁFICA RÁPIDA",
+    cnpj: "58.504.948/0001-64",
+    site: "www.yamaprint.com.br",
+    endereco: "Av. General Francisco Glicério, 901 - Centro - Suzano /SP",
+    cep: "08674-003",
+    whatsapp: "11 4744-7839",
+    email: "suzano@yamaprint.com.br"
+  }
+};
+
+const formatarCpfCnpj = (valor) => {
+  const apenasDigitos = valor.replace(/\D/g, '');
+  if (!apenasDigitos) return '';
+  if (apenasDigitos.length <= 11) {
+    return apenasDigitos
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+  } else {
+    return apenasDigitos
+      .replace(/^(\d{2})(\d)/, '$1.$2')
+      .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
+      .replace(/\.(\d{3})(\d)/, '.$1/$2')
+      .replace(/(\d{4})(\d)/, '$1-$2')
+      .slice(0, 18);
+  }
+};
 
 export default function App() {
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark');
@@ -39,6 +80,143 @@ export default function App() {
   const [uploadMsg, setUploadMsg] = useState('');
   const [uploadHistory, setUploadHistory] = useState({});
 
+  // Estados do Modal de Orçamento
+  const [storeModalOpen, setStoreModalOpen] = useState(false);
+  const [orcamentoModalOpen, setOrcamentoModalOpen] = useState(false);
+  const [unidadeOrcamento, setUnidadeOrcamento] = useState('MOGI');
+  const [nomeClienteOrcamento, setNomeClienteOrcamento] = useState('');
+  const [docClienteOrcamento, setDocClienteOrcamento] = useState('');
+  const [descontoPercentual, setDescontoPercentual] = useState('');
+  const [itensOrcamento, setItensOrcamento] = useState([
+    { descricao: '', qtd: '', valorUnit: '' }
+  ]);
+  const ultimoItemRef = useRef(null);
+
+  const adicionarItemOrcamento = () => {
+    setItensOrcamento(prev => [...prev, { descricao: '', qtd: '', valorUnit: '' }]);
+    setTimeout(() => {
+      if (ultimoItemRef.current) {
+        ultimoItemRef.current.focus();
+      }
+    }, 50);
+  };
+
+  const gerarPdfOrcamento = () => {
+    const infoLoja = DADOS_UNIDADES[unidadeOrcamento] || DADOS_UNIDADES["MOGI"];
+    const doc = new jsPDF();
+
+    try {
+      doc.addImage('/logo-orc.png', 'PNG', 14, 11, 24, 24);
+    } catch (e) {
+      console.warn("Logotipo não carregado no PDF, prosseguindo sem imagem.", e);
+    }
+
+    doc.setFont("Helvetica", "bold");
+    doc.setFontSize(13.5);
+    doc.setTextColor(15, 23, 42); 
+    doc.text(infoLoja.razao, 42, 18);
+
+    doc.setFont("Helvetica", "normal");
+    doc.setFontSize(9.5);
+    doc.setTextColor(70, 70, 70);
+    doc.text(`CNPJ: ${infoLoja.cnpj}  |  Site: ${infoLoja.site}`, 42, 25);
+
+    doc.setDrawColor(220, 224, 230);
+    doc.line(14, 39, 196, 39);
+
+    doc.setFont("Helvetica", "bold");
+    doc.setFontSize(11);
+    doc.setTextColor(15, 23, 42);
+    doc.text("ORÇAMENTO DE PRODUTOS E SERVIÇOS", 14, 47);
+
+    doc.setFont("Helvetica", "normal");
+    doc.setFontSize(10);
+    const clienteTexto = nomeClienteOrcamento.trim() ? nomeClienteOrcamento.trim().toUpperCase() : "__________________________________________________";
+    doc.text(`Cliente: ${clienteTexto}`, 14, 54);
+
+    if (docClienteOrcamento.trim()) {
+      doc.text(`CPF/CNPJ: ${formatarCpfCnpj(docClienteOrcamento)}`, 14, 60);
+    } else {
+      doc.text(`CPF/CNPJ: ________________________`, 14, 60);
+    }
+    doc.text(`Data de Emissão: ${new Date().toLocaleDateString()}`, 14, 66);
+
+    const corpoTabela = itensOrcamento.map(i => {
+      const v = parseFloat(i.valorUnit) || 0;
+      return [
+        i.descricao || '',
+        i.qtd !== '' ? i.qtd : '',
+        i.valorUnit !== '' ? formatPrice(v) : ''
+      ];
+    });
+
+    const subtotalOrcamento = itensOrcamento.reduce((acc, i) => {
+      const q = parseFloat(i.qtd) || 0;
+      const v = parseFloat(i.valorUnit) || 0;
+      return acc + (q * v);
+    }, 0);
+
+    const percDesconto = parseFloat(descontoPercentual.replace(',', '.')) || 0;
+    const valorDesconto = (subtotalOrcamento * percDesconto) / 100;
+    const valorTotalOrcamento = Math.max(0, subtotalOrcamento - valorDesconto);
+
+    autoTable(doc, {
+      startY: 72,
+      head: [['DESCRIÇÃO DOS ITENS / SERVIÇOS', 'QTD', 'VALOR UNIT.']],
+      body: corpoTabela,
+      theme: 'grid',
+      styles: { font: 'Helvetica', fontSize: 10 },
+      headStyles: { fillColor: [15, 23, 42], fontSize: 10 }, 
+      columnStyles: {
+        0: { cellWidth: 124 },
+        1: { cellWidth: 26, halign: 'center' },
+        2: { cellWidth: 32, halign: 'right' }
+      }
+    });
+
+    let finalY = doc.lastAutoTable.finalY + 8;
+
+    doc.setFont("Helvetica", "normal");
+    doc.setFontSize(10);
+    doc.setTextColor(70, 70, 70);
+
+    if (percDesconto > 0 && subtotalOrcamento > 0) {
+      doc.text(`Subtotal: ${formatPrice(subtotalOrcamento)}`, 196, finalY, { align: 'right' });
+      finalY += 6;
+      doc.text(`Desconto Aplicado (${percDesconto}%): - ${formatPrice(valorDesconto)}`, 196, finalY, { align: 'right' });
+      finalY += 8;
+    }
+
+    if (subtotalOrcamento > 0) {
+      doc.setFont("Helvetica", "bold");
+      doc.setFontSize(12);
+      doc.setTextColor(15, 23, 42);
+      doc.text(`VALOR TOTAL: ${formatPrice(valorTotalOrcamento)}`, 196, finalY, { align: 'right' });
+    }
+
+    doc.setFont("Helvetica", "italic");
+    doc.setFontSize(9);
+    doc.setTextColor(100, 100, 100);
+    doc.text(`* Orçamento válido por 7 (sete) dias a partir da data de emissão.`, 14, finalY + 16);
+    doc.text(`Unidade ${unidadeOrcamento} — Atendimento de Segunda a Sexta - das 9h as 18h | Sábado - das 9h as 14h.`, 14, finalY + 22);
+
+    const posYRodape = doc.internal.pageSize.height - 15;
+    doc.setDrawColor(220, 224, 230);
+    doc.line(14, posYRodape - 6, 196, posYRodape - 6);
+    doc.setFont("Helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(90, 90, 90);
+    doc.text(`${infoLoja.endereco}  |  CEP: ${infoLoja.cep}  |  WhatsApp: ${infoLoja.whatsapp}  |  E-mail: ${infoLoja.email}`, 105, posYRodape, { align: 'center' });
+
+    const nomeArquivoPdf = nomeClienteOrcamento.trim() 
+      ? `Orcamento_${nomeClienteOrcamento.trim().replace(/\s+/g, '_').toUpperCase()}.pdf` 
+      : `Orcamento_Em_Branco.pdf`;
+
+    doc.save(nomeArquivoPdf);
+    setOrcamentoModalOpen(false);
+    showToast('Orçamento gerado com sucesso!');
+  };
+
   const [consultaType, setConsultaType] = useState('CEP');
   const [consultaInput, setConsultaInput] = useState('');
   const [consultaResult, setConsultaResult] = useState(null);
@@ -48,9 +226,6 @@ export default function App() {
   const [calcCopiaQtd, setCalcCopiaQtd] = useState(0);
   const [calcPbQtd, setCalcPbQtd] = useState(0);
   const [calcColorQtd, setCalcColorQtd] = useState(0);
-
-  const [appUpdateInfo, setAppUpdateInfo] = useState(null);
-  const [dismissUpdate, setDismissUpdate] = useState(false);
 
   useEffect(() => {
     localStorage.setItem('theme', theme);
@@ -69,14 +244,8 @@ export default function App() {
         if (docSnap.exists()) {
           setUploadHistory(docSnap.data());
         }
-
-        const updateRef = doc(db, "settings", "app_update");
-        const updateSnap = await getDoc(updateRef);
-        if (updateSnap.exists()) {
-          setAppUpdateInfo(updateSnap.data());
-        }
       } catch (err) {
-        console.error("Erro ao carregar configurações do Firebase:", err);
+        console.error("Erro ao carregar histórico de uploads:", err);
       }
     };
     fetchUploadHistory();
@@ -320,7 +489,6 @@ export default function App() {
 
   const getProductTypes = () => {
     if (!selectedSubCategory) return [];
-    // Preserva a ordem dos produtos (que já vem ordenado por "order" do Firebase)
     const seen = new Set();
     const types = [];
     products.forEach(item => {
@@ -332,10 +500,7 @@ export default function App() {
         types.push(item.name);
       }
     });
-    // Quando a subcategoria não possui variações com "name" preenchido
-    // (ex.: SANTINHO), mantém ao menos a própria Pill selecionável.
     if (types.length === 0) return [selectedSubCategory];
-
     return types;
   };
 
@@ -353,13 +518,8 @@ export default function App() {
     return null;
   };
 
-
   const resolveInitialProductType = (parentCatName, subCatName) => {
-    // Carimbo e Serviços não possuem variação de tipo em tela própria
     if (parentCatName === 'CARIMBO' || parentCatName === 'SERVIÇOS') return 'TODOS';
-
-    // Gráfica: pula a tela intermediária selecionando o primeiro tipo.
-    // Quando a subcategoria não tem variações, mantém a própria Pill (ex.: SANTINHO).
     const firstType = getFirstProductType(subCatName);
     return firstType || subCatName;
   };
@@ -678,8 +838,6 @@ export default function App() {
   const isMadeira = activeTab === 'CARIMBO' && selectedSubCategory?.toUpperCase().includes('MADEIRA') && !isGlobalSearch;
   const isAutomatico = activeTab === 'CARIMBO' && !isMadeira;
 
-  // Marcas/subcategorias de Carimbos exibidas como Pills no topo da tabela
-  // (na ordem visual padrão COLOP → TRODAT → MADEIRA → INSUMOS).
   const CARIMBO_MARCA_ORDER = ['COLOP', 'TRODAT', 'MADEIRA', 'INSUMOS'];
   const carimboMarcas = (() => {
     const presentes = [...new Set(
@@ -694,11 +852,6 @@ export default function App() {
     return [...ordered, ...resto];
   })();
 
-  // Categorias/subcategorias de Serviços exibidas como Pills no topo da tabela.
-  // Ordem visual padrão (indiferente a acentos/símbolos/sufixos do cadastro):
-  // CÓPIA → IMPRESSÃO P/B → IMPRESSÃO COLORIDA → PLASTIFICAÇÃO →
-  // ENCADERNAÇÃO → CAPA → ESPIRAL. Qualquer outra categoria é anexada ao final.
-  // Nota: remove-se a pontuação ("P/B" -> "PB") para a Pills casar corretamente.
   const SERVICO_RANK = [
     { key: 'COPIA',              match: (n) => n.includes('COPIA') },
     { key: 'IMPRESSAO PB',       match: (n) => n.includes('IMPRESSAO') && n.includes('PB') },
@@ -715,15 +868,13 @@ export default function App() {
         .map(item => item.subCategory)
         .filter(Boolean)
     )];
-    // Token limpo: normaliza o rótulo removendo acentos E pontuação (/"- etc.)
-    // para que "IMPRESSÃO P/B" seja tratado como "IMPRESSAOPB".
     const token = (s) => normalizeStr(s).replace(/[^A-Z0-9]/g, '');
     return [...presentes].sort((a, b) => {
       const ra = SERVICO_RANK.findIndex(r => r.match(token(a)));
       const rb = SERVICO_RANK.findIndex(r => r.match(token(b)));
       const ia = ra === -1 ? SERVICO_RANK.length : ra;
       const ib = rb === -1 ? SERVICO_RANK.length : rb;
-      return ia - ib; // estável: itens fora da lista preservam a ordem de chegada
+      return ia - ib;
     });
   })();
 
@@ -732,23 +883,18 @@ export default function App() {
   const isEspiral = activeTab === 'SERVIÇOS' && ['ESPIRAL'].includes(selectedSubCategory?.toUpperCase());
   const isPlastificacao = activeTab === 'SERVIÇOS' && ['PLASTIFICAÇÃO', 'POLASEAL', 'PLASTIFICAÇÃO E POLASEAL', 'PLASTIFICAÇÃO & POLASEAL'].includes(selectedSubCategory?.toUpperCase());
 
-  // Tecla ESC: fecha o "nível" atual da interface e, ao final,
-  // volta 1 tela na trilha de navegação, sempre parando na HOME.
   useEffect(() => {
     const handleEscape = (e) => {
       if (e.key !== 'Escape') return;
 
-      // 1) Fecha qualquer overlay/menu/modal aberto primeiro.
       if (isExtrasOpen) { setIsExtrasOpen(false); return; }
       if (showAdminModal) { setShowAdminModal(false); setAdminPassword(''); setPasswordError(''); return; }
       if (modalOpen) { setModalOpen(false); return; }
+      if (storeModalOpen) { setStoreModalOpen(false); return; }
+      if (orcamentoModalOpen) { setOrcamentoModalOpen(false); return; }
       if (mobileMenuOpen) { setMobileMenuOpen(false); return; }
 
-      // 2) Com subcategoria/tipo aberta, volta para a grade de subcategorias.
       if (['GRÁFICA', 'CARIMBO', 'SERVIÇOS'].includes(activeTab) && selectedSubCategory) {
-        // Carimbos e Serviços entram direto numa subcategoria (sem tela
-        // intermediária de categoria), então o ESC volta para a HOME direto,
-        // sem passar pelo grid de "botões de categoria".
         if (activeTab === 'CARIMBO' || activeTab === 'SERVIÇOS') {
           triggerAnimation();
           setActiveTab('HOME');
@@ -759,14 +905,12 @@ export default function App() {
           setMobileMenuOpen(false);
           return;
         }
-        // Gráfica mantém o comportamento atual: volta para a grade de subcategorias.
         triggerAnimation();
         setSelectedSubCategory(null);
         setSelectedProductType(null);
         return;
       }
 
-      // 3) Nas demais telas, volta para a tela inicial (parando nela).
       if (activeTab !== 'HOME') {
         triggerAnimation();
         setActiveTab('HOME');
@@ -781,13 +925,9 @@ export default function App() {
     window.addEventListener('keydown', handleEscape);
     return () => window.removeEventListener('keydown', handleEscape);
   }, [
-    isExtrasOpen, showAdminModal, modalOpen, mobileMenuOpen,
+    isExtrasOpen, showAdminModal, modalOpen, storeModalOpen, orcamentoModalOpen, mobileMenuOpen,
     activeTab, selectedSubCategory
   ]);
-  // (os setters e a triggerAnimation são estáveis; o efeito acima precisa
-  //  apenas refletir o estado atual quando o ESC for pressionado)
-
-  const hasUpdate = appUpdateInfo && appUpdateInfo.latestVersion && appUpdateInfo.latestVersion.replace(/\s+/g, '').toLowerCase() !== CURRENT_APP_VERSION.replace(/\s+/g, '').toLowerCase() && !dismissUpdate;
 
   return (
     <div className="flex h-screen font-sans selection:bg-blue-600 selection:text-white overflow-hidden relative">
@@ -799,24 +939,178 @@ export default function App() {
         handleSendFile={handleSendFile} uploadHistory={uploadHistory}
       />
 
-      {hasUpdate && (
-        <div className="fixed bottom-6 left-6 z-50 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-5 py-4 rounded-2xl shadow-2xl flex items-center gap-4 border border-blue-400/30 animate-bounce">
-          <Sparkles className="w-6 h-6 text-yellow-300 flex-shrink-0" />
-          <div className="flex flex-col">
-            <span className="text-xs font-bold uppercase tracking-wider text-blue-200">Atualização Disponível ({appUpdateInfo.latestVersion})</span>
-            <span className="text-sm font-semibold">Baixe agora para aproveitar as melhorias!</span>
-          </div>
-          {appUpdateInfo.latestLink && (
-            <button 
-              onClick={(e) => {
-                setDismissUpdate(true);
-                handleExternalLink(appUpdateInfo.latestLink, e);
-              }}
-              className="ml-2 bg-white text-blue-600 hover:bg-blue-50 px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-md cursor-pointer whitespace-nowrap"
-            >
-              Fazer Download
+      {/* MODAL SELETOR DE UNIDADE PARA O ORÇAMENTO */}
+      {storeModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
+          <div className="bg-white dark:bg-[#121826] border border-slate-200 dark:border-[#1e293b] rounded-2xl p-8 max-w-sm w-full shadow-2xl relative text-center">
+            <button onClick={() => setStoreModalOpen(false)} className="absolute top-5 right-5 text-slate-400 hover:text-slate-800 dark:hover:text-white cursor-pointer">
+              <X className="w-5 h-5" />
             </button>
-          )}
+            <div className="w-14 h-14 bg-blue-100 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 rounded-full flex items-center justify-center text-blue-600 dark:text-blue-400 mb-4 mx-auto text-xl">
+              <Building2 className="w-7 h-7" />
+            </div>
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2 uppercase tracking-wide">Selecione a Unidade</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mb-6">Escolha qual filial emitirá o orçamento:</p>
+            
+            <div className="flex flex-col gap-3">
+              <button 
+                onClick={() => { setUnidadeOrcamento('MOGI'); setStoreModalOpen(false); setOrcamentoModalOpen(true); }}
+                className="w-full py-3.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm tracking-wide transition-colors cursor-pointer shadow-lg shadow-blue-600/20 uppercase"
+              >
+                Loja Mogi das Cruzes
+              </button>
+              <button 
+                onClick={() => { setUnidadeOrcamento('SUZANO'); setStoreModalOpen(false); setOrcamentoModalOpen(true); }}
+                className="w-full py-3.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm tracking-wide transition-colors cursor-pointer shadow-lg shadow-emerald-600/20 uppercase"
+              >
+                Loja Suzano
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL GERADOR DE ORÇAMENTO EM PDF */}
+      {orcamentoModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4 overflow-y-auto">
+          <div className="bg-white dark:bg-[#121826] border border-slate-200 dark:border-[#1e293b] rounded-3xl p-8 max-w-[700px] w-full max-h-[90vh] flex flex-col shadow-2xl relative my-auto">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-[#1e293b] pb-4 mb-4">
+              <div className="flex items-center gap-2.5">
+                <FileSpreadsheet className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                <h3 className="text-xl font-black text-slate-900 dark:text-white">Gerar Orçamento — Loja {unidadeOrcamento}</h3>
+              </div>
+              <button onClick={() => setOrcamentoModalOpen(false)} className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-white rounded-lg cursor-pointer">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3 mb-4">
+              <div className="col-span-1">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1 uppercase tracking-wide">Nome do Cliente *</label>
+                <input 
+                  type="text" 
+                  value={nomeClienteOrcamento}
+                  onChange={e => setNomeClienteOrcamento(e.target.value)}
+                  placeholder="Nome completo ou Empresa..."
+                  className="w-full px-4 py-3 border border-slate-300 dark:border-[#1e293b] rounded-xl bg-slate-50 dark:bg-[#0b0e14] text-xs font-semibold text-slate-800 dark:text-white focus:outline-none focus:border-blue-500"
+                />
+              </div>
+              <div className="col-span-1">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1 uppercase tracking-wide">CPF / CNPJ (Opcional)</label>
+                <input 
+                  type="text" 
+                  value={docClienteOrcamento}
+                  onChange={e => setDocClienteOrcamento(e.target.value)}
+                  placeholder="000.000.000-00 ou 00.000..."
+                  className="w-full px-4 py-3 border border-slate-300 dark:border-[#1e293b] rounded-xl bg-slate-50 dark:bg-[#0b0e14] text-xs font-semibold text-slate-800 dark:text-white focus:outline-none focus:border-blue-500"
+                />
+              </div>
+              <div className="col-span-1">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1 uppercase tracking-wide">Desconto (%)</label>
+                <input 
+                  type="text" 
+                  value={descontoPercentual}
+                  onChange={e => setDescontoPercentual(e.target.value)}
+                  placeholder="Ex: 10 ou 5.5"
+                  className="w-full px-4 py-3 border border-slate-300 dark:border-[#1e293b] rounded-xl bg-slate-50 dark:bg-[#0b0e14] text-xs font-semibold text-slate-800 dark:text-white focus:outline-none focus:border-blue-500"
+                />
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto max-h-[40vh] space-y-3 mb-4 pr-1">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-black uppercase text-slate-400">Itens do Orçamento</span>
+                <button 
+                  onClick={adicionarItemOrcamento}
+                  className="flex items-center gap-1 px-3 py-1.5 bg-sky-50 hover:bg-sky-100 dark:bg-blue-600/10 dark:hover:bg-blue-600/20 text-blue-600 dark:text-blue-400 rounded-lg font-bold text-xs transition cursor-pointer border border-blue-200 dark:border-blue-500/20"
+                >
+                  <Plus className="w-4 h-4" /> Adicionar Item
+                </button>
+              </div>
+
+              {itensOrcamento.map((item, index) => {
+                const isUltimo = index === itensOrcamento.length - 1;
+                return (
+                  <div key={index} className="grid grid-cols-12 gap-2 items-center bg-slate-50 dark:bg-[#0b0e14] p-3 rounded-xl border border-slate-200 dark:border-[#1e293b]">
+                    <div className="col-span-6">
+                      <input 
+                        ref={isUltimo ? ultimoItemRef : null}
+                        type="text"
+                        value={item.descricao}
+                        onChange={e => {
+                          const val = e.target.value;
+                          setItensOrcamento(prev => prev.map((it, i) => i === index ? { ...it, descricao: val } : it));
+                        }}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            adicionarItemOrcamento();
+                          }
+                        }}
+                        placeholder="Descrição do serviço/produto"
+                        className="w-full px-3 py-2 border border-slate-300 dark:border-[#1e293b] bg-white dark:bg-[#121826] rounded-lg text-xs font-semibold text-slate-800 dark:text-white focus:outline-none"
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <input 
+                        type="number"
+                        min={1}
+                        value={item.qtd}
+                        onFocus={(e) => e.target.select()}
+                        onChange={e => {
+                          const val = e.target.value;
+                          setItensOrcamento(prev => prev.map((it, i) => i === index ? { ...it, qtd: val } : it));
+                        }}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            adicionarItemOrcamento();
+                          }
+                        }}
+                        placeholder="Qtd."
+                        className="w-full px-3 py-2 border border-slate-300 dark:border-[#1e293b] bg-white dark:bg-[#121826] rounded-lg text-xs font-semibold text-center text-slate-800 dark:text-white focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      />
+                    </div>
+                    <div className="col-span-3">
+                      <input 
+                        type="number"
+                        step="0.01"
+                        value={item.valorUnit}
+                        onFocus={(e) => e.target.select()}
+                        onChange={e => {
+                          const val = e.target.value;
+                          setItensOrcamento(prev => prev.map((it, i) => i === index ? { ...it, valorUnit: val } : it));
+                        }}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            adicionarItemOrcamento();
+                          }
+                        }}
+                        placeholder="Valor Unit."
+                        className="w-full px-3 py-2 border border-slate-300 dark:border-[#1e293b] bg-white dark:bg-[#121826] rounded-lg text-xs font-semibold text-slate-800 dark:text-white focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      />
+                    </div>
+                    <div className="col-span-1 flex justify-center">
+                      {itensOrcamento.length > 1 && (
+                        <button 
+                          onClick={() => setItensOrcamento(prev => prev.filter((_, i) => i !== index))}
+                          className="text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/15 p-1.5 rounded-lg transition cursor-pointer"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="flex gap-3 pt-4 border-t border-slate-200 dark:border-[#1e293b]">
+              <button onClick={() => setOrcamentoModalOpen(false)} className="flex-1 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 py-3.5 rounded-xl font-extrabold text-xs uppercase transition cursor-pointer">Cancelar</button>
+              <button onClick={gerarPdfOrcamento} className="flex-1 bg-blue-600 hover:bg-blue-500 text-white py-3.5 rounded-xl font-extrabold text-xs uppercase shadow-md cursor-pointer transition">Gerar PDF do Orçamento</button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -869,6 +1163,7 @@ export default function App() {
         triggerAnimation={triggerAnimation} setSelectedSubCategory={setSelectedSubCategory}
         setSelectedProductType={setSelectedProductType} setUploadStatus={setUploadStatus}
         setIsExtrasOpen={setIsExtrasOpen}
+        onOpenStoreModal={() => setStoreModalOpen(true)}
       />
 
       <main className="flex-1 flex flex-col min-h-screen relative scroll-smooth overflow-y-auto w-full">
@@ -1094,7 +1389,7 @@ export default function App() {
               <svg className="w-4 h-4 fill-current opacity-60 group-hover:opacity-100 transition-opacity" viewBox="0 0 24 24">
                 <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
               </svg>
-              <span className="tracking-wide">mrenanpx ({CURRENT_APP_VERSION})</span>
+              <span className="tracking-wide">mrenanpx</span>
             </a>
           </div>
 
